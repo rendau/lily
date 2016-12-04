@@ -1,4 +1,4 @@
-package main
+package lily
 
 import (
 	"testing"
@@ -29,10 +29,24 @@ func TestStore(t *testing.T) {
 	}
 	st.Unlock()
 
-	st.SetLock("b", 2, NoExpiration)
+	st.SetLock("a", true, NoExpiration)
+	x, ok = st.GetLock("a")
+	if !ok {
+		t.Error("not found key that is exists")
+	}
+	st.SetLock("b", false, NoExpiration)
 	x, ok = st.GetLock("b")
 	if !ok {
 		t.Error("not found key that is exists")
+	}
+	all := st.GetAllLock()
+	if len(all) != 2 {
+		t.Error("must be two elements")
+	}
+	st.DeleteLock("a")
+	x, ok = st.GetLock("a")
+	if ok {
+		t.Error("got value while key is not exists:", x)
 	}
 	st.DeleteLock("b")
 	x, ok = st.GetLock("b")

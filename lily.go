@@ -1,4 +1,4 @@
-package main
+package lily
 
 import (
 	"sync"
@@ -93,6 +93,21 @@ func (s *Store) GetLock(key string) (interface{}, bool) {
 	value, found := s.Get(key)
 	s.mu.RUnlock()
 	return value, found
+}
+
+func (s *Store) GetAll() []interface{} {
+	all := make([]interface{}, 0, len(s.store))
+	for _, item := range s.store {
+		all = append(all, item.value)
+	}
+	return all
+}
+
+func (s *Store) GetAllLock() []interface{} {
+	s.mu.Lock()
+	all := s.GetAll()
+	s.mu.Unlock()
+	return all
 }
 
 func (s *Store) RefreshExpiration(key string) {
