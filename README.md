@@ -1,2 +1,2 @@
 # lily
-In memory key-value storage for Golang
+Simple Golang tools
