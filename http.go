@@ -1,6 +1,7 @@
 package lily
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 )
@@ -17,7 +18,16 @@ func HTTPRespondStr(w http.ResponseWriter, code int, body string) {
 	fmt.Fprint(w, body)
 }
 
-func HTTPRespond400(w http.ResponseWriter, err string, desc string) {
+func HTTPRespondJSONObj(w http.ResponseWriter, obj interface{}) {
+	HTTPSetContentTypeJSON(w)
+	ErrPanic(json.NewEncoder(w).Encode(obj))
+}
+
+func HTTPRespondError(w http.ResponseWriter, err string, desc string) {
 	HTTPSetContentTypeJSON(w)
 	HTTPRespondStr(w, 400, fmt.Sprintf(`{"error":"%s","detail":"%s"}`, err, desc))
+}
+
+func HTTPRespondJSONParseError(w http.ResponseWriter) {
+	HTTPRespondError(w, "bad_json", "Fail to parse JSON")
 }
