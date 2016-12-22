@@ -1,6 +1,7 @@
 package lily
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,16 +19,27 @@ func HTTPRespondStr(w http.ResponseWriter, code int, body string) {
 	fmt.Fprint(w, body)
 }
 
-func HTTPRespondJSONObj(w http.ResponseWriter, obj interface{}) {
+func HTTPRespondJSONObj(w http.ResponseWriter, code int, obj interface{}) {
+	w.WriteHeader(code)
 	HTTPSetContentTypeJSON(w)
 	ErrPanic(json.NewEncoder(w).Encode(obj))
 }
 
-func HTTPRespondError(w http.ResponseWriter, err string, desc string) {
+func HTTPRespondError(w http.ResponseWriter, code int, err string, desc string) {
+	w.WriteHeader(code)
 	HTTPSetContentTypeJSON(w)
 	HTTPRespondStr(w, 400, fmt.Sprintf(`{"error":"%s","detail":"%s"}`, err, desc))
 }
 
 func HTTPRespondJSONParseError(w http.ResponseWriter) {
-	HTTPRespondError(w, "bad_json", "Fail to parse JSON")
+	HTTPRespondError(w, 400, "bad_json", "Fail to parse JSON")
+}
+
+func HTTPSendRequestJSON(method, url string, obj interface{}) (*http.Response, error) {
+	reqData, err := json.Marshal(obj)
+	ErrPanic(err)
+	req, err := http.NewRequest(method, url, bytes.NewBuffer(reqData))
+	ErrPanic(err)
+	client := &http.Client{}
+	return client.Do(req)
 }
