@@ -26,9 +26,8 @@ func HTTPRespondJSONObj(w http.ResponseWriter, code int, obj interface{}) {
 }
 
 func HTTPRespondError(w http.ResponseWriter, code int, err string, desc string) {
-	w.WriteHeader(code)
 	HTTPSetContentTypeJSON(w)
-	HTTPRespondStr(w, 400, fmt.Sprintf(`{"error":"%s","detail":"%s"}`, err, desc))
+	HTTPRespondStr(w, code, fmt.Sprintf(`{"error":"%s","detail":"%s"}`, err, desc))
 }
 
 func HTTPRespondJSONParseError(w http.ResponseWriter) {
