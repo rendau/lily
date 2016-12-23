@@ -20,8 +20,8 @@ func HTTPRespondStr(w http.ResponseWriter, code int, body string) {
 }
 
 func HTTPRespondJSONObj(w http.ResponseWriter, code int, obj interface{}) {
-	w.WriteHeader(code)
 	HTTPSetContentTypeJSON(w)
+	w.WriteHeader(code)
 	ErrPanic(json.NewEncoder(w).Encode(obj))
 }
 
