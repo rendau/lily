@@ -25,9 +25,14 @@ func HTTPRespondJSONObj(w http.ResponseWriter, code int, obj interface{}) {
 	ErrPanic(json.NewEncoder(w).Encode(obj))
 }
 
-func HTTPRespondError(w http.ResponseWriter, code int, err string, desc string) {
-	HTTPSetContentTypeJSON(w)
-	HTTPRespondStr(w, code, fmt.Sprintf(`{"error":"%s","detail":"%s"}`, err, desc))
+func HTTPRespondError(w http.ResponseWriter, code int, err string, detail string, extras ...interface{}) {
+	obj := map[string]interface{}{}
+	obj["error"] = err
+	obj["detail"] = detail
+	for i := 0; i < len(extras); i += 2 {
+		obj[extras[i].(string)] = extras[i+1]
+	}
+	HTTPRespondJSONObj(w, code, obj)
 }
 
 func HTTPRespondJSONParseError(w http.ResponseWriter) {
