@@ -18,13 +18,13 @@ type Item struct {
 }
 
 const (
-	DefaultDuration time.Duration = -1
-	NoExpiration    time.Duration = 0
+	StoreDefaultDuration time.Duration = -1
+	StoreNoExpiration    time.Duration = 0
 )
 
 func NewStore(defaultDuration time.Duration, cleanupInterval time.Duration) *Store {
-	if defaultDuration == DefaultDuration {
-		defaultDuration = NoExpiration
+	if defaultDuration == StoreDefaultDuration {
+		defaultDuration = StoreNoExpiration
 	}
 	s := &Store{
 		store:           make(map[string]*Item),
@@ -59,7 +59,7 @@ func (s *Store) Unlock() {
 }
 
 func (s *Store) Set(key string, value interface{}, duration time.Duration) {
-	if duration == DefaultDuration {
+	if duration == StoreDefaultDuration {
 		duration = s.defaultDuration
 	}
 	var expiration int64 = 0
@@ -79,18 +79,21 @@ func (s *Store) SetLock(key string, value interface{}, duration time.Duration) {
 	s.mu.Unlock()
 }
 
-func (s *Store) Get(key string) (interface{}, bool) {
+func (s *Store) Get(key string, refreshExpiration bool) (interface{}, bool) {
 	item, found := s.store[key]
 	if found {
+		if refreshExpiration {
+			item.expiration = time.Now().Add(item.duration).UnixNano()
+		}
 		return item.value, true
 	} else {
 		return nil, false
 	}
 }
 
-func (s *Store) GetLock(key string) (interface{}, bool) {
+func (s *Store) GetLock(key string, refreshExpiration bool) (interface{}, bool) {
 	s.mu.RLock()
-	value, found := s.Get(key)
+	value, found := s.Get(key, refreshExpiration)
 	s.mu.RUnlock()
 	return value, found
 }
