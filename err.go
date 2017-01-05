@@ -1,6 +1,9 @@
 package lily
 
-import "log"
+import (
+	"log"
+	"runtime"
+)
 
 func ErrPanic(err error) {
 	if err != nil {
@@ -8,8 +11,9 @@ func ErrPanic(err error) {
 	}
 }
 
-func ErrFatal(err error, msg string) {
+func ErrFatal(err error, msg ...string) {
 	if err != nil {
-		log.Fatalln(err)
+		_, file, line, _ := runtime.Caller(1)
+		log.Fatalf("fatal (%s:%d):\n\t%s\n\t%s\n", file, line, msg, err.Error())
 	}
 }
