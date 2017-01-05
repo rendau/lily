@@ -28,8 +28,8 @@ func HTTPRespondJSONObj(w http.ResponseWriter, code int, obj interface{}) {
 func HTTPRespondError(w http.ResponseWriter, code int, err string, detail string, extras ...interface{}) {
 	obj := map[string]interface{}{}
 	obj["error"] = err
-	obj["detail"] = detail
-	for i := 0; i < len(extras); i += 2 {
+	obj["error_detail"] = detail
+	for i := 0; (i + 1) < len(extras); i += 2 {
 		obj[extras[i].(string)] = extras[i+1]
 	}
 	HTTPRespondJSONObj(w, code, obj)
@@ -39,11 +39,14 @@ func HTTPRespondJSONParseError(w http.ResponseWriter) {
 	HTTPRespondError(w, 400, "bad_json", "Fail to parse JSON")
 }
 
-func HTTPSendRequestJSON(method, url string, obj interface{}) (*http.Response, error) {
+func HTTPSendRequestJSON(method, url string, obj interface{}, headers ...string) (*http.Response, error) {
 	reqData, err := json.Marshal(obj)
 	ErrPanic(err)
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(reqData))
 	ErrPanic(err)
+	for i := 0; (i + 1) < len(headers); i += 2 {
+		req.Header.Set(headers[i], headers[i+1])
+	}
 	client := &http.Client{}
 	return client.Do(req)
 }
