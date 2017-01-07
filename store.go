@@ -107,9 +107,9 @@ func (s *Store) GetAll() []interface{} {
 }
 
 func (s *Store) GetAllLock() []interface{} {
-	s.mu.Lock()
+	s.mu.RLock()
 	all := s.GetAll()
-	s.mu.Unlock()
+	s.mu.RUnlock()
 	return all
 }
 
