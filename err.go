@@ -5,9 +5,13 @@ import (
 	"runtime"
 )
 
-func ErrPanic(err error) {
+func ErrPanic(err error, msg ...string) {
 	if err != nil {
-		log.Panicln(err)
+		if len(msg) > 0 {
+			log.Panicln(err, msg[0])
+		} else {
+			log.Panicln(err)
+		}
 	}
 }
 

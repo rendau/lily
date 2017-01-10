@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 func HTTPSetContentTypeJSON(w http.ResponseWriter) {
@@ -39,7 +40,7 @@ func HTTPRespondJSONParseError(w http.ResponseWriter) {
 	HTTPRespondError(w, 400, "bad_json", "Fail to parse JSON")
 }
 
-func HTTPSendRequestJSON(method, url string, obj interface{}, headers ...string) (*http.Response, error) {
+func HTTPSendRequestJSON(method, url string, obj interface{}, timeout time.Duration, headers ...string) (*http.Response, error) {
 	reqData, err := json.Marshal(obj)
 	ErrPanic(err)
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(reqData))
@@ -47,6 +48,8 @@ func HTTPSendRequestJSON(method, url string, obj interface{}, headers ...string)
 	for i := 0; (i + 1) < len(headers); i += 2 {
 		req.Header.Set(headers[i], headers[i+1])
 	}
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: timeout,
+	}
 	return client.Do(req)
 }
