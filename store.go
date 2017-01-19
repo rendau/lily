@@ -17,6 +17,11 @@ type Item struct {
 	expiration int64
 }
 
+type ListRow struct {
+	Key   string
+	Value interface{}
+}
+
 const (
 	StoreDefaultDuration time.Duration = -1
 	StoreNoExpiration    time.Duration = 0
@@ -98,15 +103,15 @@ func (s *Store) GetLock(key string, refreshExpiration bool) (interface{}, bool) 
 	return value, found
 }
 
-func (s *Store) GetAll() []interface{} {
-	all := make([]interface{}, 0, len(s.store))
-	for _, item := range s.store {
-		all = append(all, item.value)
+func (s *Store) GetAll() []*ListRow {
+	all := make([]*ListRow, 0, len(s.store))
+	for key, item := range s.store {
+		all = append(all, &ListRow{Key: key, Value: item.value})
 	}
 	return all
 }
 
-func (s *Store) GetAllLock() []interface{} {
+func (s *Store) GetAllLock() []*ListRow {
 	s.mu.RLock()
 	all := s.GetAll()
 	s.mu.RUnlock()
