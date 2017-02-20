@@ -40,11 +40,17 @@ func HTTPRespondJSONParseError(w http.ResponseWriter) {
 	HTTPRespondError(w, 400, "bad_json", "Fail to parse JSON")
 }
 
-func HTTPSendRequestJSON(method, url string, obj interface{}, timeout time.Duration, headers ...string) (*http.Response, error) {
-	reqData, err := json.Marshal(obj)
-	ErrPanic(err)
-	req, err := http.NewRequest(method, url, bytes.NewBuffer(reqData))
-	ErrPanic(err)
+func HTTPSendRequest(method, url string, data []byte, timeout time.Duration, headers ...string) (*http.Response, error) {
+	var err error
+	var req *http.Request
+	if data != nil {
+		ErrPanic(err)
+		req, err = http.NewRequest(method, url, bytes.NewBuffer(data))
+		ErrPanic(err)
+	} else {
+		req, err = http.NewRequest(method, url, nil)
+		ErrPanic(err)
+	}
 	for i := 0; (i + 1) < len(headers); i += 2 {
 		req.Header.Set(headers[i], headers[i+1])
 	}
@@ -52,4 +58,14 @@ func HTTPSendRequestJSON(method, url string, obj interface{}, timeout time.Durat
 		Timeout: timeout,
 	}
 	return client.Do(req)
+}
+
+func HTTPSendRequestJSON(method, url string, obj interface{}, timeout time.Duration, headers ...string) (*http.Response, error) {
+	var err error
+	var data []byte
+	if obj != nil {
+		data, err = json.Marshal(obj)
+		ErrPanic(err)
+	}
+	return HTTPSendRequest(method, url, data, timeout, headers...)
 }
