@@ -44,7 +44,6 @@ func HTTPSendRequest(method, url string, data []byte, timeout time.Duration, hea
 	var err error
 	var req *http.Request
 	if data != nil {
-		ErrPanic(err)
 		req, err = http.NewRequest(method, url, bytes.NewBuffer(data))
 		ErrPanic(err)
 	} else {
