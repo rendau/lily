@@ -82,17 +82,17 @@ func HTTPRespondError(w http.ResponseWriter, code int, err string, detail string
 }
 
 func HTTPRespond400(w http.ResponseWriter, err, detail string, extras ...interface{}) {
-	lily.HTTPRespondError(w, 400, err, detail, extras...)
+	HTTPRespondError(w, 400, err, detail, extras...)
 }
 
 func HTTPRespond401(w http.ResponseWriter) {
-	lily.HTTPRespondError(w, 401, "bad_token", "Bad token")
+	HTTPRespondError(w, 401, "bad_token", "Bad token")
 }
 
 func HTTPRespond403(w http.ResponseWriter) {
-	lily.HTTPRespondError(w, 403, "permission_denied", "Permission denied")
+	HTTPRespondError(w, 403, "permission_denied", "Permission denied")
 }
 
 func HTTPRespond404(w http.ResponseWriter) {
-	lily.HTTPRespondError(w, 404, "object_not_found", "Object not found")
+	HTTPRespondError(w, 404, "object_not_found", "Object not found")
 }
