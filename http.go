@@ -26,16 +26,6 @@ func HTTPRespondJSONObj(w http.ResponseWriter, code int, obj interface{}) {
 	ErrPanic(json.NewEncoder(w).Encode(obj))
 }
 
-func HTTPRespondError(w http.ResponseWriter, code int, err string, detail string, extras ...interface{}) {
-	obj := map[string]interface{}{}
-	obj["error"] = err
-	obj["error_detail"] = detail
-	for i := 0; (i + 1) < len(extras); i += 2 {
-		obj[extras[i].(string)] = extras[i+1]
-	}
-	HTTPRespondJSONObj(w, code, obj)
-}
-
 func HTTPRespondJSONParseError(w http.ResponseWriter) {
 	HTTPRespondError(w, 400, "bad_json", "Fail to parse JSON")
 }
@@ -79,4 +69,30 @@ func HTTPRetrieveRequestURL(r *http.Request) string {
 		}
 	}
 	return scheme + "://" + r.Host
+}
+
+func HTTPRespondError(w http.ResponseWriter, code int, err string, detail string, extras ...interface{}) {
+	obj := map[string]interface{}{}
+	obj["error"] = err
+	obj["error_detail"] = detail
+	for i := 0; (i + 1) < len(extras); i += 2 {
+		obj[extras[i].(string)] = extras[i+1]
+	}
+	HTTPRespondJSONObj(w, code, obj)
+}
+
+func HTTPRespond400(w http.ResponseWriter, err, detail string, extras ...interface{}) {
+	lily.HTTPRespondError(w, 400, err, detail, extras...)
+}
+
+func HTTPRespond401(w http.ResponseWriter) {
+	lily.HTTPRespondError(w, 401, "bad_token", "Bad token")
+}
+
+func HTTPRespond403(w http.ResponseWriter) {
+	lily.HTTPRespondError(w, 403, "permission_denied", "Permission denied")
+}
+
+func HTTPRespond404(w http.ResponseWriter) {
+	lily.HTTPRespondError(w, 404, "object_not_found", "Object not found")
 }
