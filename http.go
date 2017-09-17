@@ -68,3 +68,15 @@ func HTTPSendRequestJSON(method, url string, obj interface{}, timeout time.Durat
 	}
 	return HTTPSendRequest(method, url, data, timeout, headers...)
 }
+
+func HTTPRetrieveRequestURL(r *http.Request) string {
+	scheme := r.Header.Get("X-Forwarded-Proto")
+	if scheme == "" {
+		if r.TLS == nil {
+			scheme = "http"
+		} else {
+			scheme = "https"
+		}
+	}
+	return scheme + "://" + r.Host
+}
