@@ -3,6 +3,7 @@ package lily
 import (
 	"log"
 	"runtime"
+	"runtime/debug"
 )
 
 func ErrPanic(err error, msg ...string) {
@@ -11,6 +12,16 @@ func ErrPanic(err error, msg ...string) {
 			log.Panicln(err, msg[0])
 		} else {
 			log.Panicln(err)
+		}
+	}
+}
+
+func ErrPanicWS(err error, msg ...string) {
+	if err != nil {
+		if len(msg) > 0 {
+			log.Panicln(err, msg[0], "\r\n", string(debug.Stack()))
+		} else {
+			log.Panicln(err, "\r\n", string(debug.Stack()))
 		}
 	}
 }
