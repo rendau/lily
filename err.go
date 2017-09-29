@@ -16,6 +16,12 @@ func ErrPanic(err error, msg ...string) {
 	}
 }
 
+func ErrPanicSilent(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
 func ErrPanicWS(err error, msg ...string) {
 	if err != nil {
 		if len(msg) > 0 {
