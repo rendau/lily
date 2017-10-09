@@ -50,15 +50,6 @@ func ApiJsonListQuery(q string) string {
 		from (` + q + `) sq)`
 }
 
-func ApiJsonListStrQuery(q string) string {
-	return `select coalesce(array_to_json(array_agg(row_to_json(sq.*)))::text, '[]')
-		from (` + q + `) sq`
-}
-
 func ApiJsonRowQuery(q string) string {
 	return `(select row_to_json(sq.*) from (` + q + `) sq)`
-}
-
-func ApiJsonRowStrQuery(q string) string {
-	return `select row_to_json(sq.*)::text from (` + q + `) sq`
 }
