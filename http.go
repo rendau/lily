@@ -86,7 +86,7 @@ func HTTPRespond400(w http.ResponseWriter, err, detail string, extras ...interfa
 }
 
 func HTTPRespond401(w http.ResponseWriter) {
-	HTTPRespondError(w, 401, "bad_token", "Bad token")
+	HTTPRespondError(w, 401, "unauthorized", "Unauthorized")
 }
 
 func HTTPRespond403(w http.ResponseWriter) {
