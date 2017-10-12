@@ -44,12 +44,3 @@ func ApiPaginatedResponse(data string, page_size, page, total uint64) string {
 	return fmt.Sprintf(`{"page_size":%d,"page":%d,"total_count":%d`, page_size, page, total) +
 		`,"results":` + data + `}`
 }
-
-func ApiJsonListQuery(q string) string {
-	return `(select coalesce(array_to_json(array_agg(row_to_json(sq.*))), '[]')
-		from (` + q + `) sq)`
-}
-
-func ApiJsonRowQuery(q string) string {
-	return `(select row_to_json(sq.*) from (` + q + `) sq)`
-}
