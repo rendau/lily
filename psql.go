@@ -18,12 +18,19 @@ type PsqlDynamicSqlWithSt struct {
 	Sql   *PsqlDynamicSqlSelectSt
 }
 
-func (dss *PsqlDynamicSqlSelectSt) Query() string {
+type PsqlDynamicSqlUpdateSt struct {
+	Table string
+	Set   string
+	Where string
+	Args  []interface{}
+}
+
+func (ds *PsqlDynamicSqlSelectSt) Query() string {
 	var q string
 	var wq string
 
-	if len(dss.With) > 0 {
-		for _, w := range dss.With {
+	if len(ds.With) > 0 {
+		for _, w := range ds.With {
 			if wq == `` {
 				wq = `with `
 			} else {
@@ -32,44 +39,58 @@ func (dss *PsqlDynamicSqlSelectSt) Query() string {
 			wq += w.Alias + ` as (` + w.Sql.Query() + `) `
 		}
 	}
-	q = `select ` + dss.Select + ` `
-	if dss.NeedRowNum {
-		q += `, row_number() over(order by ` + dss.OrderBy + `) row_num `
+	q = `select ` + ds.Select + ` `
+	if ds.NeedRowNum {
+		q += `, row_number() over(order by ` + ds.OrderBy + `) row_num `
 	}
-	q += `from ` + dss.From + ` `
-	if dss.Where != `` {
-		q += `where 1=1 ` + dss.Where + ` `
+	q += `from ` + ds.From + ` `
+	if ds.Where != `` {
+		q += `where 1=1 ` + ds.Where + ` `
 	}
-	if dss.OrderBy != `` {
-		q += `order by ` + dss.OrderBy + ` `
+	if ds.OrderBy != `` {
+		q += `order by ` + ds.OrderBy + ` `
 	}
-	if dss.Offset != `` {
-		q += `offset ` + dss.Offset + ` `
+	if ds.Offset != `` {
+		q += `offset ` + ds.Offset + ` `
 	}
-	if dss.Limit != `` {
-		q += `limit ` + dss.Limit + ` `
+	if ds.Limit != `` {
+		q += `limit ` + ds.Limit + ` `
 	}
-	if dss.Json == "list" {
+	if ds.Json == "list" {
 		return wq + PsqlJsonListQuery(q)
-	} else if dss.Json == "row" {
+	} else if ds.Json == "row" {
 		return wq + PsqlJsonRowQuery(q)
 	}
 	return wq + q
 }
 
-func (dss *PsqlDynamicSqlSelectSt) TotalCount() string {
+func (ds *PsqlDynamicSqlSelectSt) TotalCount() string {
 	var q string
-	if len(dss.With) > 0 {
-		for _, w := range dss.With {
+	if len(ds.With) > 0 {
+		for _, w := range ds.With {
 			if q != `` {
 				q += `, `
 			}
 			q += `with ` + w.Alias + ` as (` + w.Sql.Query() + `) `
 		}
 	}
-	q += `select count(*) from ` + dss.From + ` `
-	if dss.Where != `` {
-		q += `where 1=1 ` + dss.Where
+	q += `select count(*) from ` + ds.From + ` `
+	if ds.Where != `` {
+		q += `where 1=1 ` + ds.Where
+	}
+	return q
+}
+
+func (ds *PsqlDynamicSqlUpdateSt) Query() string {
+	var q string
+	q = `update ` + ds.Table + ` set `
+	if ds.Set[0] == ',' {
+		q += ds.Set[1:]
+	} else {
+		q += ds.Set
+	}
+	if ds.Where != `` {
+		q += ` where ` + ds.Where
 	}
 	return q
 }
