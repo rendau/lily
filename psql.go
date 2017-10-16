@@ -25,6 +25,13 @@ type PsqlDynamicSqlUpdateSt struct {
 	Args  []interface{}
 }
 
+type PsqlDynamicSqlInsertSt struct {
+	Table  string
+	Fields string
+	Values string
+	Args   []interface{}
+}
+
 func (ds *PsqlDynamicSqlSelectSt) Query() string {
 	var q string
 	var wq string
@@ -92,6 +99,24 @@ func (ds *PsqlDynamicSqlUpdateSt) Query() string {
 	if ds.Where != `` {
 		q += ` where ` + ds.Where
 	}
+	return q
+}
+
+func (ds *PsqlDynamicSqlInsertSt) Query() string {
+	var q string
+	q = `insert into ` + ds.Table + ` (`
+	if ds.Fields[0] == ',' {
+		q += ds.Fields[1:]
+	} else {
+		q += ds.Fields
+	}
+	q += `) values (`
+	if ds.Values[0] == ',' {
+		q += ds.Values[1:]
+	} else {
+		q += ds.Values
+	}
+	q += `)`
 	return q
 }
 
