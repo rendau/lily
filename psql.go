@@ -26,10 +26,11 @@ type PsqlDynamicSqlUpdateSt struct {
 }
 
 type PsqlDynamicSqlInsertSt struct {
-	Table  string
-	Fields string
-	Values string
-	Args   []interface{}
+	Table     string
+	Fields    string
+	Values    string
+	Returning string
+	Args      []interface{}
 }
 
 func (ds *PsqlDynamicSqlSelectSt) Query() string {
@@ -117,6 +118,9 @@ func (ds *PsqlDynamicSqlInsertSt) Query() string {
 		q += ds.Values
 	}
 	q += `)`
+	if ds.Returning != `` {
+		q += ` returning ` + ds.Returning
+	}
 	return q
 }
 
