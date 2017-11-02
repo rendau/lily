@@ -85,14 +85,14 @@ func HTTPRespond400(w http.ResponseWriter, err, detail string, extras ...interfa
 	HTTPRespondError(w, 400, err, detail, extras...)
 }
 
-func HTTPRespond401(w http.ResponseWriter) {
-	HTTPRespondError(w, 401, "unauthorized", "Unauthorized")
+func HTTPRespond401(w http.ResponseWriter, err, detail string) {
+	HTTPRespondError(w, 401, err, detail)
 }
 
-func HTTPRespond403(w http.ResponseWriter) {
-	HTTPRespondError(w, 403, "permission_denied", "Permission denied")
+func HTTPRespond403(w http.ResponseWriter, err, detail string) {
+	HTTPRespondError(w, 403, err, detail)
 }
 
-func HTTPRespond404(w http.ResponseWriter) {
-	HTTPRespondError(w, 404, "object_not_found", "Object not found")
+func HTTPRespond404(w http.ResponseWriter, err, detail string) {
+	HTTPRespondError(w, 404, err, detail)
 }
