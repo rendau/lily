@@ -27,7 +27,7 @@ func HTTPRespondJSONObj(w http.ResponseWriter, code int, obj interface{}) {
 }
 
 func HTTPRespondJSONParseError(w http.ResponseWriter) {
-	HTTPRespondError(w, 400, "bad_json", "Fail to parse JSON")
+	HTTPRespond400(w, "bad_json", "Fail to parse JSON")
 }
 
 func HTTPSendRequest(method, url string, data []byte, timeout time.Duration, headers ...string) (*http.Response, error) {
@@ -74,7 +74,7 @@ func HTTPRetrieveRequestURL(r *http.Request) string {
 func HTTPRespondError(w http.ResponseWriter, code int, err string, detail string, extras ...interface{}) {
 	obj := map[string]interface{}{}
 	obj["error"] = err
-	obj["error_detail"] = detail
+	obj["error_dsc"] = detail
 	for i := 0; (i + 1) < len(extras); i += 2 {
 		obj[extras[i].(string)] = extras[i+1]
 	}
@@ -85,14 +85,14 @@ func HTTPRespond400(w http.ResponseWriter, err, detail string, extras ...interfa
 	HTTPRespondError(w, 400, err, detail, extras...)
 }
 
-func HTTPRespond401(w http.ResponseWriter, err, detail string) {
-	HTTPRespondError(w, 401, err, detail)
+func HTTPRespond401(w http.ResponseWriter, detail string) {
+	HTTPRespondError(w, 401, "unauthorized", detail)
 }
 
-func HTTPRespond403(w http.ResponseWriter, err, detail string) {
-	HTTPRespondError(w, 403, err, detail)
+func HTTPRespond403(w http.ResponseWriter, detail string) {
+	HTTPRespondError(w, 403, "permission_denied", detail)
 }
 
-func HTTPRespond404(w http.ResponseWriter, err, detail string) {
-	HTTPRespondError(w, 404, err, detail)
+func HTTPRespond404(w http.ResponseWriter, detail string) {
+	HTTPRespondError(w, 404, "not_found", detail)
 }
