@@ -90,7 +90,11 @@ func (ds *PsqlDynamicSqlSelectSt) TotalCount() string {
 	}
 	q += `select count(*) from ` + ds.From + ` `
 	if ds.Where != `` {
-		q += `where 1=1 ` + ds.Where
+		q += `where `
+		if strings.HasPrefix(strings.TrimLeft(ds.Where, " "), "and ") {
+			q += `1=1 `
+		}
+		q += ds.Where + ` `
 	}
 	return q
 }
