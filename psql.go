@@ -1,5 +1,7 @@
 package lily
 
+import "strings"
+
 type PsqlDynamicSqlSelectSt struct {
 	With       []PsqlDynamicSqlWithSt
 	Select     string
@@ -53,7 +55,11 @@ func (ds *PsqlDynamicSqlSelectSt) Query() string {
 	}
 	q += `from ` + ds.From + ` `
 	if ds.Where != `` {
-		q += `where 1=1 ` + ds.Where + ` `
+		q += `where `
+		if strings.HasPrefix(strings.TrimLeft(ds.Where, " "), "and ") {
+			q += `1=1 `
+		}
+		q += ds.Where + ` `
 	}
 	if ds.OrderBy != `` {
 		q += `order by ` + ds.OrderBy + ` `
