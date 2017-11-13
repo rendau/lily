@@ -56,6 +56,7 @@ func HTTPSendRequestJSON(method, url string, obj interface{}, timeout time.Durat
 		data, err = json.Marshal(obj)
 		ErrPanic(err)
 	}
+	headers = append(headers, "Content-Type", "application/json")
 	return HTTPSendRequest(method, url, data, timeout, headers...)
 }
 
