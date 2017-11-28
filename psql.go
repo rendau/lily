@@ -1,6 +1,8 @@
 package lily
 
-import "strings"
+import (
+	"strings"
+)
 
 type PsqlDynamicSqlSelectSt struct {
 	With       []PsqlDynamicSqlWithSt
@@ -38,6 +40,10 @@ type PsqlDynamicSqlInsertSt struct {
 func (ds *PsqlDynamicSqlSelectSt) Query() string {
 	var q string
 	var wq string
+
+	if len(ds.OrderBy) > 0 && ds.OrderBy[0] == ',' {
+		ds.OrderBy = ds.OrderBy[1:]
+	}
 
 	if len(ds.With) > 0 {
 		for _, w := range ds.With {

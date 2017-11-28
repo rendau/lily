@@ -7,6 +7,10 @@ import (
 	"strings"
 )
 
+type ApiSortParsSt struct {
+	Pars []ApiSortParSt
+}
+
 type ApiSortParSt struct {
 	Column string
 	Desc   bool
@@ -38,7 +42,8 @@ func ApiExtractPaginationPars(pars *url.Values) (offset uint64, limit uint64, pa
 	return
 }
 
-func ApiExtractSortPars(pars *url.Values, allowedColumns ...string) (result []ApiSortParSt) {
+func ApiExtractSortPars(pars *url.Values, allowedColumns ...string) *ApiSortParsSt {
+	var result ApiSortParsSt
 	sort := pars.Get("sort")
 	var par ApiSortParSt
 	for _, item := range strings.Split(sort, ",") {
@@ -52,14 +57,29 @@ func ApiExtractSortPars(pars *url.Values, allowedColumns ...string) (result []Ap
 				for _, ac := range allowedColumns {
 					if ac == item {
 						par.Column = item
-						result = append(result, par)
+						result.Pars = append(result.Pars, par)
 						break
 					}
 				}
 			}
 		}
 	}
-	return
+	return &result
+}
+
+func ApiPaginatedSortedResponse(data string, page_size, page, total uint64, sortPars *ApiSortParsSt) string {
+	var sp string
+	for _, p := range sortPars.Pars {
+		if sp != "" {
+			sp += ","
+		}
+		if p.Desc {
+			sp += "-"
+		}
+		sp += p.Column
+	}
+	return fmt.Sprintf(`{"page_size":%d,"page":%d,"total_count":%d,"sort":%q`, page_size, page, total, sp) +
+		`,"results":` + data + `}`
 }
 
 func ApiPaginatedResponse(data string, page_size, page, total uint64) string {
