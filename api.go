@@ -4,7 +4,13 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 )
+
+type ApiSortParSt struct {
+	Column string
+	Desc   bool
+}
 
 func ApiExtractPaginationPars(pars *url.Values) (offset uint64, limit uint64, page uint64) {
 	var err error
@@ -32,11 +38,27 @@ func ApiExtractPaginationPars(pars *url.Values) (offset uint64, limit uint64, pa
 	return
 }
 
-func ApiExtractSortPars(pars *url.Values) (sortColumn string, sortDesc bool) {
-	// TODO change this fun
-	sortColumn = pars.Get("sort_columns")
-	qPar := pars.Get("sort_order")
-	sortDesc = qPar == "desc"
+func ApiExtractSortPars(pars *url.Values, allowedColumns ...string) (result []ApiSortParSt) {
+	sort := pars.Get("sort")
+	var par ApiSortParSt
+	for _, item := range strings.Split(sort, ",") {
+		par = ApiSortParSt{}
+		if len(item) > 0 {
+			if item[0] == '-' {
+				par.Desc = true
+				item = item[1:]
+			}
+			if len(item) > 0 {
+				for _, ac := range allowedColumns {
+					if ac == item {
+						par.Column = item
+						result = append(result, par)
+						break
+					}
+				}
+			}
+		}
+	}
 	return
 }
 
