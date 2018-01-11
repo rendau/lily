@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+	"net/http/cookiejar"
 )
 
 func HTTPSetContentTypeJSON(w http.ResponseWriter) {
@@ -43,8 +44,13 @@ func HTTPSendRequest(method, url string, data []byte, timeout time.Duration, hea
 	for i := 0; (i + 1) < len(headers); i += 2 {
 		req.Header.Set(headers[i], headers[i+1])
 	}
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		return nil, err
+	}
 	client := &http.Client{
 		Timeout: timeout,
+		Jar:     jar,
 	}
 	return client.Do(req)
 }
