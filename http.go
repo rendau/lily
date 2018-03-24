@@ -4,11 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"errors"
 	"net/http"
 	"time"
 	"net/http/cookiejar"
 	"strings"
 	"net"
+	"path/filepath"
+	"os"
+	"io"
 )
 
 func HTTPSetContentTypeJSON(w http.ResponseWriter) {
@@ -99,6 +103,52 @@ func HTTPRetrieveRemoteIP(r *http.Request) (result string) {
 		}
 	}
 	return
+}
+
+func HTTPUploadFormFile(r *http.Request, key, dirPath, dir string, id uint64) (string, error) {
+	var err error
+
+	err = os.MkdirAll(filepath.Join(dirPath, dir), os.ModePerm)
+	if err != nil {
+		return "", err
+	}
+
+	srcFile, header, err := r.FormFile(key)
+	if err != nil {
+		return "", err
+	}
+	defer srcFile.Close()
+
+	fileExt := filepath.Ext(header.Filename)
+	if fileExt == "" {
+		return "", errors.New("bad_extension")
+	}
+
+	newName := fmt.Sprintf("%s%c%d%s", dir, filepath.Separator, id, fileExt)
+	suffix := 0
+	for {
+		_, err = os.Stat(filepath.Join(dirPath, newName))
+		if os.IsNotExist(err) {
+			break
+		} else if err != nil {
+			return "", err
+		}
+		suffix += 1
+		newName = fmt.Sprintf("%s%c%d_%d%s", dir, filepath.Separator, id, suffix, fileExt)
+	}
+
+	dstFile, err := os.Create(filepath.Join(dirPath, newName))
+	if err != nil {
+		return "", err
+	}
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		return "", err
+	}
+
+	return newName, nil
 }
 
 func HTTPRespondError(w http.ResponseWriter, code int, err string, detail string, extras ...interface{}) {
