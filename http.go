@@ -72,6 +72,33 @@ func HTTPSendRequestJSON(method, url string, obj interface{}, timeout time.Durat
 	return HTTPSendRequest(method, url, data, timeout, headers...)
 }
 
+func HTTPSendJARRequest(jar *cookiejar.Jar, method, url string, data []byte, timeout time.Duration, headers ...string) (*http.Response, *cookiejar.Jar, error) {
+	var err error
+	var req *http.Request
+	if data != nil {
+		req, err = http.NewRequest(method, url, bytes.NewBuffer(data))
+		ErrPanic(err)
+	} else {
+		req, err = http.NewRequest(method, url, nil)
+		ErrPanic(err)
+	}
+	for i := 0; (i + 1) < len(headers); i += 2 {
+		req.Header.Set(headers[i], headers[i+1])
+	}
+	if jar == nil {
+		jar, err = cookiejar.New(nil)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	client := &http.Client{
+		Timeout: timeout,
+		Jar:     jar,
+	}
+	response, err := client.Do(req)
+	return response, jar, err
+}
+
 func HTTPRetrieveRequestURL(r *http.Request) string {
 	scheme := r.Header.Get("X-Forwarded-Proto")
 	if scheme == "" {
