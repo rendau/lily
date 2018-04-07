@@ -38,7 +38,15 @@ func ZipExtractFromFile(src, dest string) error {
 }
 
 func ZipExtract(buffer *bytes.Buffer, fileSize int64, dest string) error {
-	os.MkdirAll(dest, 0755)
+	err := os.RemoveAll(dest)
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll(dest, 0755)
+	if err != nil {
+		return err
+	}
 
 	r, err := zip.NewReader(bytes.NewReader(buffer.Bytes()), fileSize)
 	if err != nil {
