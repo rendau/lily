@@ -135,7 +135,9 @@ func HTTPRetrieveRemoteIP(r *http.Request) (result string) {
 func HTTPUploadFormFile(r *http.Request, key, dirPath, dir string, filename string) (string, error) {
 	var err error
 
-	err = os.MkdirAll(filepath.Join(dirPath, dir), os.ModePerm)
+	finalDirPath := filepath.Join(dirPath, dir)
+
+	err = os.MkdirAll(finalDirPath, os.ModePerm)
 	if err != nil {
 		return "", err
 	}
@@ -151,26 +153,15 @@ func HTTPUploadFormFile(r *http.Request, key, dirPath, dir string, filename stri
 		return "", errors.New("bad_extension")
 	}
 
-	newName := fmt.Sprintf("%s%c%s%s", dir, filepath.Separator, filename, fileExt)
-	suffix := 0
-	for {
-		_, err = os.Stat(filepath.Join(dirPath, newName))
-		if os.IsNotExist(err) {
-			break
-		} else if err != nil {
-			return "", err
-		}
-		suffix += 1
-		newName = fmt.Sprintf("%s%c%s_%d%s", dir, filepath.Separator, filename, suffix, fileExt)
-	}
-
-	dstFile, err := os.Create(filepath.Join(dirPath, newName))
-	if err != nil {
-		return "", err
-	}
+	dstFile, err := TempFile(finalDirPath, filename + "_*" + fileExt)
 	defer dstFile.Close()
 
 	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		return "", err
+	}
+
+	newName, err := filepath.Rel(dirPath, dstFile.Name())
 	if err != nil {
 		return "", err
 	}
