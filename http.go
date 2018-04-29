@@ -132,7 +132,7 @@ func HTTPRetrieveRemoteIP(r *http.Request) (result string) {
 	return
 }
 
-func HTTPUploadFormFile(r *http.Request, key, dirPath, dir string, filename string) (string, error) {
+func HTTPUploadFileFromRequestForm(r *http.Request, key, dirPath, dir string, filename string) (string, error) {
 	var err error
 
 	finalDirPath := filepath.Join(dirPath, dir)
