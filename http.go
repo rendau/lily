@@ -132,7 +132,7 @@ func HTTPRetrieveRemoteIP(r *http.Request) (result string) {
 	return
 }
 
-func HTTPUploadFormFile(r *http.Request, key, dirPath, dir string, id uint64) (string, error) {
+func HTTPUploadFormFile(r *http.Request, key, dirPath, dir string, filename string) (string, error) {
 	var err error
 
 	err = os.MkdirAll(filepath.Join(dirPath, dir), os.ModePerm)
@@ -151,7 +151,7 @@ func HTTPUploadFormFile(r *http.Request, key, dirPath, dir string, id uint64) (s
 		return "", errors.New("bad_extension")
 	}
 
-	newName := fmt.Sprintf("%s%c%d%s", dir, filepath.Separator, id, fileExt)
+	newName := fmt.Sprintf("%s%c%s%s", dir, filepath.Separator, filename, fileExt)
 	suffix := 0
 	for {
 		_, err = os.Stat(filepath.Join(dirPath, newName))
@@ -161,7 +161,7 @@ func HTTPUploadFormFile(r *http.Request, key, dirPath, dir string, id uint64) (s
 			return "", err
 		}
 		suffix += 1
-		newName = fmt.Sprintf("%s%c%d_%d%s", dir, filepath.Separator, id, suffix, fileExt)
+		newName = fmt.Sprintf("%s%c%s_%d%s", dir, filepath.Separator, filename, suffix, fileExt)
 	}
 
 	dstFile, err := os.Create(filepath.Join(dirPath, newName))
