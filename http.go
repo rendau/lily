@@ -154,6 +154,9 @@ func HTTPUploadFileFromRequestForm(r *http.Request, key, dirPath, dir string, fi
 	}
 
 	dstFile, err := TempFile(finalDirPath, filename + "_*" + fileExt)
+	if err != nil {
+		return "", err
+	}
 	defer dstFile.Close()
 
 	_, err = io.Copy(dstFile, srcFile)

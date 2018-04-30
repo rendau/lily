@@ -7,11 +7,16 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"net/url"
+	"strings"
+	"errors"
+	"io"
 )
 
 var (
 	dirPath         string
 	dirName         string
+	dirFullPath     string
 	timeLimit       time.Duration
 	cleanupInterval time.Duration
 )
@@ -22,10 +27,11 @@ func TmpInit(pDirPath, pDirName string, pTimeLimit time.Duration, pCleanupInterv
 	}
 	dirPath = pDirPath
 	dirName = pDirName
+	dirFullPath = filepath.Join(dirPath, dirName)
 	timeLimit = pTimeLimit
 	cleanupInterval = pCleanupInterval
 
-	err := os.MkdirAll(filepath.Join(dirPath, dirName), os.ModePerm)
+	err := os.MkdirAll(dirFullPath, os.ModePerm)
 	ErrPanic(err)
 
 	go tmpCleaner()
@@ -36,6 +42,58 @@ func TmpSaveFileFromRequestForm(r *http.Request, key, fnSuffix string) (string, 
 		log.Panicln("Tmp module used befor inited")
 	}
 	return HTTPUploadFileFromRequestForm(r, key, dirPath, dirName, tmpGenerateFilename(fnSuffix))
+}
+
+func TmpCopyTempTarget(urlStr string, dirPath, dir string, filename string) (string, error) {
+	notFoundError := errors.New("bad_url")
+
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "", err
+	}
+
+	urlPathSlice := strings.SplitN(u.Path, dirName+"/", 2)
+	if len(urlPathSlice) != 2 {
+		return "", notFoundError
+	}
+
+	filePath := filepath.Join(append([]string{dirFullPath}, strings.Split(urlPathSlice[1], "/")...)...)
+
+	fileExt := filepath.Ext(filePath)
+	if fileExt == "" {
+		return "", errors.New("bad_extension")
+	}
+
+	srcFile, err := os.Open(filePath)
+	if err != nil {
+		return "", notFoundError
+	}
+	defer srcFile.Close()
+
+	finalDstDirPath := filepath.Join(dirPath, dir)
+
+	err = os.MkdirAll(finalDstDirPath, os.ModePerm)
+	if err != nil {
+		return "", err
+	}
+
+	dstFile, err := TempFile(finalDstDirPath, filename+"_*"+fileExt)
+	if err != nil {
+		return "", err
+	}
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		return "", err
+	}
+
+	newName, err := filepath.Rel(dirPath, dstFile.Name())
+	if err != nil {
+		return "", err
+	}
+
+	return newName, nil
 }
 
 func tmpGenerateFilename(suffix string) string {
@@ -72,7 +130,7 @@ func tmpCleaner() {
 		deletePaths = nil
 
 		err = filepath.Walk(
-			filepath.Join(dirPath, dirName),
+			dirFullPath,
 			func(path string, f os.FileInfo, err error) error {
 				if f == nil {
 					return nil
