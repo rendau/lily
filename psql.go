@@ -59,22 +59,24 @@ func (ds *PsqlDynamicSqlSelectSt) Query() string {
 	if ds.NeedRowNum {
 		q += `, row_number() over(order by ` + ds.OrderBy + `) row_num `
 	}
-	q += `from ` + ds.From + ` `
-	if ds.Where != `` {
-		q += `where `
-		if strings.HasPrefix(strings.TrimLeft(ds.Where, " "), "and ") {
-			q += `1=1 `
+	if ds.From != `` {
+		q += `from ` + ds.From + ` `
+		if ds.Where != `` {
+			q += `where `
+			if strings.HasPrefix(strings.TrimLeft(ds.Where, " "), "and ") {
+				q += `1=1 `
+			}
+			q += ds.Where + ` `
 		}
-		q += ds.Where + ` `
-	}
-	if ds.OrderBy != `` {
-		q += `order by ` + ds.OrderBy + ` `
-	}
-	if ds.Offset != `` {
-		q += `offset ` + ds.Offset + ` `
-	}
-	if ds.Limit != `` {
-		q += `limit ` + ds.Limit + ` `
+		if ds.OrderBy != `` {
+			q += `order by ` + ds.OrderBy + ` `
+		}
+		if ds.Offset != `` {
+			q += `offset ` + ds.Offset + ` `
+		}
+		if ds.Limit != `` {
+			q += `limit ` + ds.Limit + ` `
+		}
 	}
 	if ds.Json == "list" {
 		return wq + PsqlJsonListQuery(q)
