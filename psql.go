@@ -90,10 +90,12 @@ func (ds *PsqlDynamicSqlSelectSt) TotalCount() string {
 	var q string
 	if len(ds.With) > 0 {
 		for _, w := range ds.With {
-			if q != `` {
+			if q == `` {
+				q = `with `
+			} else {
 				q += `, `
 			}
-			q += `with ` + w.Alias + ` as (` + w.Sql.Query() + `) `
+			q += w.Alias + ` as (` + w.Sql.Query() + `) `
 		}
 	}
 	q += `select count(*) from ` + ds.From + ` `
