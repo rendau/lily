@@ -10,6 +10,7 @@ type PsqlDynamicSqlSelectSt struct {
 	NeedRowNum bool
 	From       string
 	Where      string
+	GroupBy    string
 	OrderBy    string
 	Offset     string
 	Limit      string
@@ -68,6 +69,9 @@ func (ds *PsqlDynamicSqlSelectSt) Query() string {
 			}
 			q += ds.Where + ` `
 		}
+		if ds.GroupBy != `` {
+			q += `group by ` + ds.GroupBy + ` `
+		}
 		if ds.OrderBy != `` {
 			q += `order by ` + ds.OrderBy + ` `
 		}
@@ -105,6 +109,9 @@ func (ds *PsqlDynamicSqlSelectSt) TotalCount() string {
 			q += `1=1 `
 		}
 		q += ds.Where + ` `
+	}
+	if ds.GroupBy != `` {
+		q += `group by ` + ds.GroupBy + ` `
 	}
 	return q
 }
