@@ -3,16 +3,16 @@ package lily
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"errors"
-	"net/http"
-	"time"
-	"net/http/cookiejar"
-	"strings"
-	"net"
-	"path/filepath"
-	"os"
+	"fmt"
 	"io"
+	"net"
+	"net/http"
+	"net/http/cookiejar"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
 )
 
 func HTTPSetContentTypeJSON(w http.ResponseWriter) {
@@ -153,13 +153,18 @@ func HTTPUploadFileFromRequestForm(r *http.Request, key, dirPath, dir string, fi
 		return "", errors.New("bad_extension")
 	}
 
-	dstFile, err := TempFile(finalDirPath, filename + "_*" + fileExt)
+	dstFile, err := TempFile(finalDirPath, filename+"_*"+fileExt)
 	if err != nil {
 		return "", err
 	}
 	defer dstFile.Close()
 
 	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		return "", err
+	}
+
+	err = os.Chmod(dstFile.Name(), 0644)
 	if err != nil {
 		return "", err
 	}
