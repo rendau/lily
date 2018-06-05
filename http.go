@@ -99,7 +99,7 @@ func HTTPSendJARRequest(jar *cookiejar.Jar, method, url string, data []byte, tim
 	return response, jar, err
 }
 
-func HTTPRetrieveRequestURL(r *http.Request) string {
+func HTTPRetrieveRequestHostURL(r *http.Request) string {
 	scheme := r.Header.Get("X-Forwarded-Proto")
 	if scheme == "" {
 		if r.TLS == nil {
