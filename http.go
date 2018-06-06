@@ -19,6 +19,10 @@ func HTTPSetContentTypeJSON(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 }
 
+func HTTPSetContentTypeHTML(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
+}
+
 func HTTPRespondStr(w http.ResponseWriter, code int, body string) {
 	if len(body) == 0 {
 		panic("body must be not empty")
