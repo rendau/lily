@@ -123,43 +123,56 @@ func SmscSendBcast(username, password string, phones string, msg string) (bool, 
 	return true, reply.ID
 }
 
-func SmscGetBalance(username, password string) (result float64) {
-	result = 0
+func SmscGetBalance(username, password string) (bool, float64) {
+	var result float64
+
 	client := &http.Client{
 		Timeout: 20 * time.Second,
 	}
+
 	req, err := http.NewRequest("GET", "https://smsc.kz/sys/balance.php", nil)
-	ErrPanic(err)
+	if err != nil {
+		return false, 0
+	}
+
 	params := req.URL.Query()
 	params.Add("login", username)
 	params.Add("psw", password)
 	params.Add("fmt", "3")
+
 	req.URL.RawQuery = params.Encode()
+
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println("fail to get sms-balance:", err)
-		return
+		return false, 0
 	}
 	defer resp.Body.Close()
+
 	if resp.StatusCode != 200 {
 		log.Printf("bad status code %d in sms-balance reply\n", resp.StatusCode)
-		return
+		return false, 0
 	}
+
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Println("fail to read sms-balance reply body:", err)
-		return
+		return false, 0
 	}
+
 	reply := getBalanceReplySt{}
 	err = json.Unmarshal(data, &reply)
 	if err != nil {
 		log.Println("fail to parse sms-balance reply:", err)
-		return
+		return false, 0
 	}
+
 	if (reply.ErrorCode != 0) || (reply.Error != "") {
 		log.Printf("sms provider error for getting balance:\n%s\n", string(data))
-		return
+		return false, 0
 	}
+
 	result, _ = strconv.ParseFloat(reply.Balance, 64)
-	return
+
+	return true, result
 }
