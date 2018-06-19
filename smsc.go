@@ -10,18 +10,31 @@ import (
 	"strconv"
 )
 
-type sendReplySt struct {
+type SmscErrorSt struct {
+	Code string
+	Desc string
+}
+
+func (o *SmscErrorSt) Error() string {
+	return o.Code + ", " + o.Desc
+}
+
+type smscSendReplySt struct {
 	ID        uint64 `json:"id"`
 	CNT       int    `json:"cnt"`
 	ErrorCode int    `json:"error_code"`
 	Error     string `json:"error"`
 }
 
-type getBalanceReplySt struct {
+type smscGetBalanceReplySt struct {
 	Balance   string `json:"balance"`
 	ErrorCode int    `json:"error_code"`
 	Error     string `json:"error"`
 }
+
+const (
+	urlPrefix = `https://smsc.kz/sys/`
+)
 
 var (
 	SmscDebug = false
@@ -35,7 +48,7 @@ func SmscSend(username, password string, phones string, msg string) bool {
 	client := &http.Client{
 		Timeout: 20 * time.Second,
 	}
-	req, err := http.NewRequest("GET", "https://smsc.kz/sys/send.php", nil)
+	req, err := http.NewRequest("GET", urlPrefix+"send.php", nil)
 	ErrPanic(err)
 	params := req.URL.Query()
 	params.Add("login", username)
@@ -60,7 +73,7 @@ func SmscSend(username, password string, phones string, msg string) bool {
 		log.Printf("(sms-send) bad status code %d in sms-send reply, data: %s\n", resp.StatusCode, string(data))
 		return false
 	}
-	reply := sendReplySt{}
+	reply := smscSendReplySt{}
 	err = json.Unmarshal(data, &reply)
 	if err != nil {
 		log.Printf("(sms-send) fail to parse sms-send reply: %s, %s\n", err.Error(), string(data))
@@ -83,7 +96,7 @@ func SmscSendBcast(username, password string, phones string, msg string) (bool, 
 	client := &http.Client{
 		Timeout: 20 * time.Second,
 	}
-	req, err := http.NewRequest("GET", "https://smsc.kz/sys/jobs.php", nil)
+	req, err := http.NewRequest("GET", urlPrefix+"jobs.php", nil)
 	ErrPanic(err)
 	params := req.URL.Query()
 	params.Add("add", "1")
@@ -110,7 +123,7 @@ func SmscSendBcast(username, password string, phones string, msg string) (bool, 
 		log.Printf("(sms-bcast) bad status code %d in sms-send reply, data: %s\n", resp.StatusCode, string(data))
 		return false, 0
 	}
-	reply := sendReplySt{}
+	reply := smscSendReplySt{}
 	err = json.Unmarshal(data, &reply)
 	if err != nil {
 		log.Printf("(sms-bcast) fail to parse sms-send reply: %s, %s\n", err.Error(), string(data))
@@ -123,16 +136,16 @@ func SmscSendBcast(username, password string, phones string, msg string) (bool, 
 	return true, reply.ID
 }
 
-func SmscGetBalance(username, password string) (bool, float64) {
+func SmscGetBalance(username, password string) (*SmscErrorSt, float64) {
 	var result float64
 
 	client := &http.Client{
 		Timeout: 20 * time.Second,
 	}
 
-	req, err := http.NewRequest("GET", "https://smsc.kz/sys/balance.php", nil)
+	req, err := http.NewRequest("GET", urlPrefix+"balance.php", nil)
 	if err != nil {
-		return false, 0
+		return &SmscErrorSt{Code: "request_fail", Desc: "Fail to create new request - " + err.Error()}, 0
 	}
 
 	params := req.URL.Query()
@@ -144,35 +157,30 @@ func SmscGetBalance(username, password string) (bool, float64) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println("fail to get sms-balance:", err)
-		return false, 0
+		return &SmscErrorSt{Code: "request_fail", Desc: "Fail to request smsc - " + err.Error()}, 0
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		log.Printf("bad status code %d in sms-balance reply\n", resp.StatusCode)
-		return false, 0
+		return &SmscErrorSt{Code: "bad_status_code", Desc: "Bad status code - " + strconv.Itoa(resp.StatusCode)}, 0
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Println("fail to read sms-balance reply body:", err)
-		return false, 0
+		return &SmscErrorSt{Code: "fail_to_read_body", Desc: "Fail to read body - " + err.Error()}, 0
 	}
 
-	reply := getBalanceReplySt{}
+	reply := smscGetBalanceReplySt{}
 	err = json.Unmarshal(data, &reply)
 	if err != nil {
-		log.Println("fail to parse sms-balance reply:", err)
-		return false, 0
+		return &SmscErrorSt{Code: "fail_to_parse_body", Desc: "Fail to parse body - " + err.Error()}, 0
 	}
 
 	if (reply.ErrorCode != 0) || (reply.Error != "") {
-		log.Printf("sms provider error for getting balance:\n%s\n", string(data))
-		return false, 0
+		return &SmscErrorSt{Code: "provider_error", Desc: "Provider error - " + string(data)}, 0
 	}
 
 	result, _ = strconv.ParseFloat(reply.Balance, 64)
 
-	return true, result
+	return nil, result
 }
