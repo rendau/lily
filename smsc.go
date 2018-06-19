@@ -88,16 +88,21 @@ func SmscSend(username, password string, phones string, msg string) bool {
 	return true
 }
 
-func SmscSendBcast(username, password string, phones string, msg string) (bool, uint64) {
+func SmscSendBcast(username, password string, phones string, msg string) (*SmscErrorSt, uint64) {
 	if SmscDebug {
 		log.Printf("Sent sms-bcast: %s - %q\n", phones, msg)
-		return true, 777
+		return nil, 777
 	}
+
 	client := &http.Client{
 		Timeout: 20 * time.Second,
 	}
+
 	req, err := http.NewRequest("GET", urlPrefix+"jobs.php", nil)
-	ErrPanic(err)
+	if err != nil {
+		return &SmscErrorSt{Code: "request_fail", Desc: "Fail to create new request - " + err.Error()}, 0
+	}
+
 	params := req.URL.Query()
 	params.Add("add", "1")
 	params.Add("login", username)
@@ -107,33 +112,35 @@ func SmscSendBcast(username, password string, phones string, msg string) (bool, 
 	params.Add("mes", msg)
 	params.Add("charset", "utf-8")
 	params.Add("fmt", "3")
+
 	req.URL.RawQuery = params.Encode()
+
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println("(sms-bcast) fail to send sms:", err)
-		return false, 0
+		return &SmscErrorSt{Code: "request_fail", Desc: "Fail to request smsc - " + err.Error()}, 0
 	}
 	defer resp.Body.Close()
+
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Println("(sms-bcast) fail to read sms-send reply body:", err)
-		return false, 0
+		return &SmscErrorSt{Code: "fail_to_read_body", Desc: "Fail to read body - " + err.Error()}, 0
 	}
+
 	if resp.StatusCode != 200 {
-		log.Printf("(sms-bcast) bad status code %d in sms-send reply, data: %s\n", resp.StatusCode, string(data))
-		return false, 0
+		return &SmscErrorSt{Code: "bad_status_code", Desc: "Bad status code - " + strconv.Itoa(resp.StatusCode) + ", body - " + string(data)}, 0
 	}
+
 	reply := smscSendReplySt{}
 	err = json.Unmarshal(data, &reply)
 	if err != nil {
-		log.Printf("(sms-bcast) fail to parse sms-send reply: %s, %s\n", err.Error(), string(data))
-		return false, 0
+		return &SmscErrorSt{Code: "fail_to_parse_body", Desc: "Fail to parse body - " + err.Error()}, 0
 	}
+
 	if (reply.ErrorCode != 0) || (reply.Error != "") {
-		log.Printf("(sms-bcast) sms provider error for (%s, %q):\n%s\n", phones, msg, string(data))
-		return false, 0
+		return &SmscErrorSt{Code: "provider_error", Desc: "Provider error for message '" + msg + "' - " + string(data)}, 0
 	}
-	return true, reply.ID
+
+	return nil, reply.ID
 }
 
 func SmscGetBalance(username, password string) (*SmscErrorSt, float64) {
@@ -161,13 +168,13 @@ func SmscGetBalance(username, password string) (*SmscErrorSt, float64) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		return &SmscErrorSt{Code: "bad_status_code", Desc: "Bad status code - " + strconv.Itoa(resp.StatusCode)}, 0
-	}
-
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return &SmscErrorSt{Code: "fail_to_read_body", Desc: "Fail to read body - " + err.Error()}, 0
+	}
+
+	if resp.StatusCode != 200 {
+		return &SmscErrorSt{Code: "bad_status_code", Desc: "Bad status code - " + strconv.Itoa(resp.StatusCode) + ", body - " + string(data)}, 0
 	}
 
 	reply := smscGetBalanceReplySt{}
