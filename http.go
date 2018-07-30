@@ -6,14 +6,20 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
+	netUrl "net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 )
+
+func HTTPStatusCodeIsOk(statusCode int) bool {
+	return statusCode > 199 && statusCode < 300
+}
 
 func HTTPSetContentTypeJSON(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -41,9 +47,12 @@ func HTTPRespondJSONParseError(w http.ResponseWriter) {
 	HTTPRespond400(w, "bad_json", "Fail to parse JSON")
 }
 
-func HTTPSendRequest(method, url string, data []byte, timeout time.Duration, headers ...string) (*http.Response, error) {
+func HTTPSendRequest(withJar bool, method, url string, urlParams map[string]string,
+	data []byte, timeout time.Duration, headers ...string) (*http.Response, error) {
 	var err error
 	var req *http.Request
+	var jar http.CookieJar
+
 	if data != nil {
 		req, err = http.NewRequest(method, url, bytes.NewBuffer(data))
 		ErrPanic(err)
@@ -51,56 +60,71 @@ func HTTPSendRequest(method, url string, data []byte, timeout time.Duration, hea
 		req, err = http.NewRequest(method, url, nil)
 		ErrPanic(err)
 	}
+
+	if urlParams != nil {
+		q := netUrl.Values{}
+		for k, v := range urlParams {
+			q.Add(k, v)
+		}
+		req.URL.RawQuery = q.Encode()
+	}
+
 	for i := 0; (i + 1) < len(headers); i += 2 {
 		req.Header.Set(headers[i], headers[i+1])
 	}
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		return nil, err
+
+	if withJar {
+		jar, err = cookiejar.New(nil)
+		ErrPanic(err)
 	}
-	client := &http.Client{
+
+	client := http.Client{
 		Timeout: timeout,
 		Jar:     jar,
 	}
+
 	return client.Do(req)
 }
 
-func HTTPSendRequestJSON(method, url string, obj interface{}, timeout time.Duration, headers ...string) (*http.Response, error) {
-	var err error
-	var data []byte
-	if obj != nil {
-		data, err = json.Marshal(obj)
-		ErrPanic(err)
+func HTTPSendRequestReceiveBytes(withJar, errSCode bool, method, url string, urlParams map[string]string,
+	data []byte, timeout time.Duration, headers ...string) (int, []byte, error) {
+	var res []byte
+
+	resp, err := HTTPSendRequest(withJar, method, url, urlParams, data, timeout, headers...)
+	if err != nil {
+		return 0, nil, err
 	}
-	headers = append(headers, "Content-Type", "application/json")
-	return HTTPSendRequest(method, url, data, timeout, headers...)
+	defer resp.Body.Close()
+
+	res, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	if !HTTPStatusCodeIsOk(resp.StatusCode) {
+		if errSCode {
+			return resp.StatusCode, res, errors.New(fmt.Sprintf("bad_http_status_code - %d\nbody: %s", resp.StatusCode, string(res)))
+		}
+		return resp.StatusCode, res, nil
+	}
+
+	return resp.StatusCode, res, nil
 }
 
-func HTTPSendJARRequest(jar *cookiejar.Jar, method, url string, data []byte, timeout time.Duration, headers ...string) (*http.Response, *cookiejar.Jar, error) {
-	var err error
-	var req *http.Request
-	if data != nil {
-		req, err = http.NewRequest(method, url, bytes.NewBuffer(data))
-		ErrPanic(err)
-	} else {
-		req, err = http.NewRequest(method, url, nil)
-		ErrPanic(err)
+func HTTPSendRequestReceiveJSONObj(withJar, errSCode bool, method, url string, urlParams map[string]string,
+	data []byte, rObj interface{}, timeout time.Duration, headers ...string) (int, []byte, error) {
+	sCode, rBytes, err := HTTPSendRequestReceiveBytes(
+		errSCode, withJar, method, url, urlParams, data, timeout, headers...)
+	if err != nil || !HTTPStatusCodeIsOk(sCode) {
+		return sCode, rBytes, err
 	}
-	for i := 0; (i + 1) < len(headers); i += 2 {
-		req.Header.Set(headers[i], headers[i+1])
+
+	err = json.Unmarshal(rBytes, rObj)
+	if err != nil {
+		return sCode, rBytes, errors.New(fmt.Sprintf("fail_to_parse_json - %s\nbody: %s", err.Error(), string(rBytes)))
 	}
-	if jar == nil {
-		jar, err = cookiejar.New(nil)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-	client := &http.Client{
-		Timeout: timeout,
-		Jar:     jar,
-	}
-	response, err := client.Do(req)
-	return response, jar, err
+
+	return sCode, rBytes, nil
 }
 
 func HTTPRetrieveRequestHostURL(r *http.Request) string {
