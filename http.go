@@ -111,6 +111,13 @@ func HTTPSendRequestReceiveBytes(withJar, errSCode bool, method, url string, url
 	return resp.StatusCode, res, nil
 }
 
+func HTTPSendRequestReceiveString(withJar, errSCode bool, method, url string, urlParams map[string]string,
+	data []byte, timeout time.Duration, headers ...string) (int, string, error) {
+	sCode, resBytes, err := HTTPSendRequestReceiveBytes(withJar, errSCode, method, url, urlParams, data, timeout, headers...)
+
+	return sCode, string(resBytes), err
+}
+
 func HTTPSendRequestReceiveJSONObj(withJar, errSCode bool, method, url string, urlParams map[string]string,
 	data []byte, rObj interface{}, timeout time.Duration, headers ...string) (int, []byte, error) {
 	sCode, rBytes, err := HTTPSendRequestReceiveBytes(
