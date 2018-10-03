@@ -121,7 +121,7 @@ func HTTPSendRequestReceiveString(withJar, errSCode bool, method, url string, ur
 func HTTPSendRequestReceiveJSONObj(withJar, errSCode bool, method, url string, urlParams map[string]string,
 	data []byte, rObj interface{}, timeout time.Duration, headers ...string) (int, []byte, error) {
 	sCode, rBytes, err := HTTPSendRequestReceiveBytes(
-		errSCode, withJar, method, url, urlParams, data, timeout, headers...)
+		withJar, errSCode, method, url, urlParams, data, timeout, headers...)
 	if err != nil || !HTTPStatusCodeIsOk(sCode) {
 		return sCode, rBytes, err
 	}
