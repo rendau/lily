@@ -134,6 +134,36 @@ func HTTPSendRequestReceiveJSONObj(withJar, errSCode bool, method, url string, u
 	return sCode, rBytes, nil
 }
 
+func HTTPSendJSONRequestReceiveBytes(withJar, errSCode bool, method, url string, urlParams map[string]string,
+	sObj interface{}, timeout time.Duration, headers ...string) (int, []byte, error) {
+	sBytes, err := json.Marshal(sObj)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return HTTPSendRequestReceiveBytes(withJar, errSCode, method, url, urlParams, sBytes, timeout, headers...)
+}
+
+func HTTPSendJSONRequestReceiveString(withJar, errSCode bool, method, url string, urlParams map[string]string,
+	sObj interface{}, timeout time.Duration, headers ...string) (int, string, error) {
+	sBytes, err := json.Marshal(sObj)
+	if err != nil {
+		return 0, "", err
+	}
+
+	return HTTPSendRequestReceiveString(withJar, errSCode, method, url, urlParams, sBytes, timeout, headers...)
+}
+
+func HTTPSendJSONRequestReceiveJSONObj(withJar, errSCode bool, method, url string, urlParams map[string]string,
+	sObj interface{}, rObj interface{}, timeout time.Duration, headers ...string) (int, []byte, error) {
+	sBytes, err := json.Marshal(sObj)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return HTTPSendRequestReceiveJSONObj(withJar, errSCode, method, url, urlParams, sBytes, rObj, timeout, headers...)
+}
+
 func HTTPRetrieveRequestHostURL(r *http.Request) string {
 	scheme := r.Header.Get("X-Forwarded-Proto")
 	if scheme == "" {
