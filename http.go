@@ -134,7 +134,17 @@ func HTTPSendRequestReceiveJSONObj(withJar, errSCode bool, method, url string, u
 	return sCode, rBytes, nil
 }
 
-func HTTPSendJSONRequestReceiveBytes(withJar, errSCode bool, method, url string, urlParams map[string]string,
+func HTTPSendJSONObjRequest(withJar bool, method, url string, urlParams map[string]string,
+	sObj interface{}, timeout time.Duration, headers ...string) (*http.Response, error) {
+	sBytes, err := json.Marshal(sObj)
+	if err != nil {
+		return nil, err
+	}
+
+	return HTTPSendRequest(withJar, method, url, urlParams, sBytes, timeout, headers...)
+}
+
+func HTTPSendJSONObjRequestReceiveBytes(withJar, errSCode bool, method, url string, urlParams map[string]string,
 	sObj interface{}, timeout time.Duration, headers ...string) (int, []byte, error) {
 	sBytes, err := json.Marshal(sObj)
 	if err != nil {
@@ -144,7 +154,7 @@ func HTTPSendJSONRequestReceiveBytes(withJar, errSCode bool, method, url string,
 	return HTTPSendRequestReceiveBytes(withJar, errSCode, method, url, urlParams, sBytes, timeout, headers...)
 }
 
-func HTTPSendJSONRequestReceiveString(withJar, errSCode bool, method, url string, urlParams map[string]string,
+func HTTPSendJSONObjRequestReceiveString(withJar, errSCode bool, method, url string, urlParams map[string]string,
 	sObj interface{}, timeout time.Duration, headers ...string) (int, string, error) {
 	sBytes, err := json.Marshal(sObj)
 	if err != nil {
@@ -154,7 +164,7 @@ func HTTPSendJSONRequestReceiveString(withJar, errSCode bool, method, url string
 	return HTTPSendRequestReceiveString(withJar, errSCode, method, url, urlParams, sBytes, timeout, headers...)
 }
 
-func HTTPSendJSONRequestReceiveJSONObj(withJar, errSCode bool, method, url string, urlParams map[string]string,
+func HTTPSendJSONObjRequestReceiveJSONObj(withJar, errSCode bool, method, url string, urlParams map[string]string,
 	sObj interface{}, rObj interface{}, timeout time.Duration, headers ...string) (int, []byte, error) {
 	sBytes, err := json.Marshal(sObj)
 	if err != nil {
