@@ -17,6 +17,28 @@ import (
 	"time"
 )
 
+func HTTPMwCORSAllowAll(h http.Handler, maxAge string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Vary", "Origin")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		if r.Method == "OPTIONS" {
+			w.Header().Set("Access-Control-Allow-Methods", "GET, HEAD, POST, PUT, DELETE, TRACE, CONNECT, OPTIONS")
+			// headers
+			requestHeaders := strings.Split(r.Header.Get("Access-Control-Request-Headers"), ",")
+			var allowedHeaders []string
+			for _, v := range requestHeaders {
+				allowedHeaders = append(allowedHeaders, http.CanonicalHeaderKey(strings.TrimSpace(v)))
+			}
+			if len(allowedHeaders) > 0 {
+				w.Header().Set("Access-Control-Allow-Headers", strings.Join(allowedHeaders, ","))
+			}
+			w.Header().Set("Access-Control-Max-Age", maxAge)
+		} else {
+			h.ServeHTTP(w, r)
+		}
+	})
+}
+
 func HTTPStatusCodeIsOk(statusCode int) bool {
 	return statusCode > 199 && statusCode < 300
 }
