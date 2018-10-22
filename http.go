@@ -9,12 +9,10 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"net/http/cookiejar"
 	netUrl "net/url"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 )
 
 func HTTPMwCORSAllowAll(h http.Handler, maxAge string) http.Handler {
@@ -69,11 +67,14 @@ func HTTPRespondJSONParseError(w http.ResponseWriter) {
 	HTTPRespond400(w, "bad_json", "Fail to parse JSON")
 }
 
-func HTTPSendRequest(withJar bool, method, url string, urlParams map[string]string,
-	data []byte, timeout time.Duration, headers ...string) (*http.Response, error) {
+func HTTPSendRequest(client *http.Client, method, url string, urlParams map[string]string,
+	data []byte, headers ...string) (*http.Response, error) {
 	var err error
 	var req *http.Request
-	var jar http.CookieJar
+
+	if client == nil {
+		ErrPanic(errors.New("client is nil"))
+	}
 
 	if data != nil {
 		req, err = http.NewRequest(method, url, bytes.NewBuffer(data))
@@ -95,24 +96,14 @@ func HTTPSendRequest(withJar bool, method, url string, urlParams map[string]stri
 		req.Header.Set(headers[i], headers[i+1])
 	}
 
-	if withJar {
-		jar, err = cookiejar.New(nil)
-		ErrPanic(err)
-	}
-
-	client := http.Client{
-		Timeout: timeout,
-		Jar:     jar,
-	}
-
 	return client.Do(req)
 }
 
-func HTTPSendRequestReceiveBytes(withJar, errSCode bool, method, url string, urlParams map[string]string,
-	data []byte, timeout time.Duration, headers ...string) (int, []byte, error) {
+func HTTPSendRequestReceiveBytes(client *http.Client, errSCode bool, method, url string, urlParams map[string]string,
+	data []byte, headers ...string) (int, []byte, error) {
 	var res []byte
 
-	resp, err := HTTPSendRequest(withJar, method, url, urlParams, data, timeout, headers...)
+	resp, err := HTTPSendRequest(client, method, url, urlParams, data, headers...)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -133,17 +124,17 @@ func HTTPSendRequestReceiveBytes(withJar, errSCode bool, method, url string, url
 	return resp.StatusCode, res, nil
 }
 
-func HTTPSendRequestReceiveString(withJar, errSCode bool, method, url string, urlParams map[string]string,
-	data []byte, timeout time.Duration, headers ...string) (int, string, error) {
-	sCode, resBytes, err := HTTPSendRequestReceiveBytes(withJar, errSCode, method, url, urlParams, data, timeout, headers...)
+func HTTPSendRequestReceiveString(client *http.Client, errSCode bool, method, url string, urlParams map[string]string,
+	data []byte, headers ...string) (int, string, error) {
+	sCode, resBytes, err := HTTPSendRequestReceiveBytes(client, errSCode, method, url, urlParams, data, headers...)
 
 	return sCode, string(resBytes), err
 }
 
-func HTTPSendRequestReceiveJSONObj(withJar, errSCode bool, method, url string, urlParams map[string]string,
-	data []byte, rObj interface{}, timeout time.Duration, headers ...string) (int, []byte, error) {
+func HTTPSendRequestReceiveJSONObj(client *http.Client, errSCode bool, method, url string, urlParams map[string]string,
+	data []byte, rObj interface{}, headers ...string) (int, []byte, error) {
 	sCode, rBytes, err := HTTPSendRequestReceiveBytes(
-		withJar, errSCode, method, url, urlParams, data, timeout, headers...)
+		client, errSCode, method, url, urlParams, data, headers...)
 	if err != nil || !HTTPStatusCodeIsOk(sCode) {
 		return sCode, rBytes, err
 	}
@@ -156,44 +147,44 @@ func HTTPSendRequestReceiveJSONObj(withJar, errSCode bool, method, url string, u
 	return sCode, rBytes, nil
 }
 
-func HTTPSendJSONObjRequest(withJar bool, method, url string, urlParams map[string]string,
-	sObj interface{}, timeout time.Duration, headers ...string) (*http.Response, error) {
+func HTTPSendJSONObjRequest(client *http.Client, method, url string, urlParams map[string]string,
+	sObj interface{}, headers ...string) (*http.Response, error) {
 	sBytes, err := json.Marshal(sObj)
 	if err != nil {
 		return nil, err
 	}
 
-	return HTTPSendRequest(withJar, method, url, urlParams, sBytes, timeout, headers...)
+	return HTTPSendRequest(client, method, url, urlParams, sBytes, headers...)
 }
 
-func HTTPSendJSONObjRequestReceiveBytes(withJar, errSCode bool, method, url string, urlParams map[string]string,
-	sObj interface{}, timeout time.Duration, headers ...string) (int, []byte, error) {
+func HTTPSendJSONObjRequestReceiveBytes(client *http.Client, errSCode bool, method, url string, urlParams map[string]string,
+	sObj interface{}, headers ...string) (int, []byte, error) {
 	sBytes, err := json.Marshal(sObj)
 	if err != nil {
 		return 0, nil, err
 	}
 
-	return HTTPSendRequestReceiveBytes(withJar, errSCode, method, url, urlParams, sBytes, timeout, headers...)
+	return HTTPSendRequestReceiveBytes(client, errSCode, method, url, urlParams, sBytes, headers...)
 }
 
-func HTTPSendJSONObjRequestReceiveString(withJar, errSCode bool, method, url string, urlParams map[string]string,
-	sObj interface{}, timeout time.Duration, headers ...string) (int, string, error) {
+func HTTPSendJSONObjRequestReceiveString(client *http.Client, errSCode bool, method, url string, urlParams map[string]string,
+	sObj interface{}, headers ...string) (int, string, error) {
 	sBytes, err := json.Marshal(sObj)
 	if err != nil {
 		return 0, "", err
 	}
 
-	return HTTPSendRequestReceiveString(withJar, errSCode, method, url, urlParams, sBytes, timeout, headers...)
+	return HTTPSendRequestReceiveString(client, errSCode, method, url, urlParams, sBytes, headers...)
 }
 
-func HTTPSendJSONObjRequestReceiveJSONObj(withJar, errSCode bool, method, url string, urlParams map[string]string,
-	sObj interface{}, rObj interface{}, timeout time.Duration, headers ...string) (int, []byte, error) {
+func HTTPSendJSONObjRequestReceiveJSONObj(client *http.Client, errSCode bool, method, url string, urlParams map[string]string,
+	sObj interface{}, rObj interface{}, headers ...string) (int, []byte, error) {
 	sBytes, err := json.Marshal(sObj)
 	if err != nil {
 		return 0, nil, err
 	}
 
-	return HTTPSendRequestReceiveJSONObj(withJar, errSCode, method, url, urlParams, sBytes, rObj, timeout, headers...)
+	return HTTPSendRequestReceiveJSONObj(client, errSCode, method, url, urlParams, sBytes, rObj, headers...)
 }
 
 func HTTPRetrieveRequestHostURL(r *http.Request) string {
