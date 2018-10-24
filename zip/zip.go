@@ -1,15 +1,15 @@
-package lily
+package zip
 
 import (
-	"net/http"
-	"bytes"
-	"os"
 	"archive/zip"
-	"path/filepath"
+	"bytes"
 	"io"
+	"net/http"
+	"os"
+	"path/filepath"
 )
 
-func ZipExtractFromRequestForm(req *http.Request, field, dest string) error {
+func ExtractFromRequestForm(req *http.Request, field, dest string) error {
 	f, _, err := req.FormFile(field)
 	if err != nil {
 		return err
@@ -20,10 +20,10 @@ func ZipExtractFromRequestForm(req *http.Request, field, dest string) error {
 	if err != nil {
 		return err
 	}
-	return ZipExtract(buf, fs, dest)
+	return Extract(buf, fs, dest)
 }
 
-func ZipExtractFromFile(src, dest string) error {
+func ExtractFromFile(src, dest string) error {
 	f, err := os.Open(src)
 	if err != nil {
 		return err
@@ -34,10 +34,10 @@ func ZipExtractFromFile(src, dest string) error {
 	if err != nil {
 		return err
 	}
-	return ZipExtract(buf, fs, dest)
+	return Extract(buf, fs, dest)
 }
 
-func ZipExtract(buffer *bytes.Buffer, fileSize int64, dest string) error {
+func Extract(buffer *bytes.Buffer, fileSize int64, dest string) error {
 	err := os.RemoveAll(dest)
 	if err != nil {
 		return err

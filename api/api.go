@@ -1,4 +1,4 @@
-package lily
+package api
 
 import (
 	"fmt"
@@ -7,16 +7,16 @@ import (
 	"strings"
 )
 
-type ApiSortParsSt struct {
-	Pars []ApiSortParSt
+type SortParsSt struct {
+	Pars []SortParSt
 }
 
-type ApiSortParSt struct {
+type SortParSt struct {
 	Column string
 	Desc   bool
 }
 
-func ApiExtractPaginationPars(pars *url.Values) (offset uint64, limit uint64, page uint64) {
+func ExtractPaginationPars(pars *url.Values) (offset uint64, limit uint64, page uint64) {
 	var err error
 	qPar := pars.Get("page_size")
 	if qPar != "" {
@@ -42,12 +42,12 @@ func ApiExtractPaginationPars(pars *url.Values) (offset uint64, limit uint64, pa
 	return
 }
 
-func ApiExtractSortPars(pars *url.Values, allowedColumns ...string) *ApiSortParsSt {
-	var result ApiSortParsSt
+func ExtractSortPars(pars *url.Values, allowedColumns ...string) *SortParsSt {
+	var result SortParsSt
 	sort := pars.Get("sort")
-	var par ApiSortParSt
+	var par SortParSt
 	for _, item := range strings.Split(sort, ",") {
-		par = ApiSortParSt{}
+		par = SortParSt{}
 		if len(item) > 0 {
 			if item[0] == '-' {
 				par.Desc = true
@@ -67,7 +67,7 @@ func ApiExtractSortPars(pars *url.Values, allowedColumns ...string) *ApiSortPars
 	return &result
 }
 
-func ApiPaginatedSortedResponse(data string, page_size, page, total uint64, sortPars *ApiSortParsSt) string {
+func PaginatedSortedResponse(data string, page_size, page, total uint64, sortPars *SortParsSt) string {
 	var sp string
 	for _, p := range sortPars.Pars {
 		if sp != "" {
@@ -82,7 +82,7 @@ func ApiPaginatedSortedResponse(data string, page_size, page, total uint64, sort
 		`,"results":` + data + `}`
 }
 
-func ApiPaginatedResponse(data string, page_size, page, total uint64) string {
+func PaginatedResponse(data string, page_size, page, total uint64) string {
 	return fmt.Sprintf(`{"page_size":%d,"page":%d,"total_count":%d`, page_size, page, total) +
 		`,"results":` + data + `}`
 }

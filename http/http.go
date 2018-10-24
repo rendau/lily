@@ -1,10 +1,11 @@
-package lily
+package http
 
 import (
 	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/rendau/lily"
 	"io"
 	"io/ioutil"
 	"log"
@@ -17,7 +18,7 @@ import (
 	"strings"
 )
 
-func HTTPMwCORSAllowAll(h http.Handler, maxAge string) http.Handler {
+func MwCORSAllowAll(h http.Handler, maxAge string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Vary", "Origin")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -39,7 +40,7 @@ func HTTPMwCORSAllowAll(h http.Handler, maxAge string) http.Handler {
 	})
 }
 
-func HTTPMwRecovery(h http.Handler) http.Handler {
+func MwRecovery(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
@@ -61,19 +62,19 @@ func HTTPMwRecovery(h http.Handler) http.Handler {
 	})
 }
 
-func HTTPStatusCodeIsOk(statusCode int) bool {
+func StatusCodeIsOk(statusCode int) bool {
 	return statusCode > 199 && statusCode < 300
 }
 
-func HTTPSetContentTypeJSON(w http.ResponseWriter) {
+func SetContentTypeJSON(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 }
 
-func HTTPSetContentTypeHTML(w http.ResponseWriter) {
+func SetContentTypeHTML(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 }
 
-func HTTPRespondStr(w http.ResponseWriter, code int, body string) {
+func RespondStr(w http.ResponseWriter, code int, body string) {
 	if len(body) == 0 {
 		panic("body must be not empty")
 	}
@@ -81,31 +82,31 @@ func HTTPRespondStr(w http.ResponseWriter, code int, body string) {
 	fmt.Fprint(w, body)
 }
 
-func HTTPRespondJSONObj(w http.ResponseWriter, code int, obj interface{}) {
-	HTTPSetContentTypeJSON(w)
+func RespondJSONObj(w http.ResponseWriter, code int, obj interface{}) {
+	SetContentTypeJSON(w)
 	w.WriteHeader(code)
-	ErrPanic(json.NewEncoder(w).Encode(obj))
+	lily.ErrPanic(json.NewEncoder(w).Encode(obj))
 }
 
-func HTTPRespondJSONParseError(w http.ResponseWriter) {
-	HTTPRespond400(w, "bad_json", "Fail to parse JSON")
+func RespondJSONParseError(w http.ResponseWriter) {
+	Respond400(w, "bad_json", "Fail to parse JSON")
 }
 
-func HTTPSendRequest(client *http.Client, method, url string, urlParams map[string]string,
+func SendRequest(client *http.Client, method, url string, urlParams map[string]string,
 	data []byte, headers ...string) (*http.Response, error) {
 	var err error
 	var req *http.Request
 
 	if client == nil {
-		ErrPanic(errors.New("client is nil"))
+		lily.ErrPanic(errors.New("client is nil"))
 	}
 
 	if data != nil {
 		req, err = http.NewRequest(method, url, bytes.NewBuffer(data))
-		ErrPanic(err)
+		lily.ErrPanic(err)
 	} else {
 		req, err = http.NewRequest(method, url, nil)
-		ErrPanic(err)
+		lily.ErrPanic(err)
 	}
 
 	if urlParams != nil {
@@ -123,11 +124,11 @@ func HTTPSendRequest(client *http.Client, method, url string, urlParams map[stri
 	return client.Do(req)
 }
 
-func HTTPSendRequestReceiveBytes(client *http.Client, errSCode bool, method, url string, urlParams map[string]string,
+func SendRequestReceiveBytes(client *http.Client, errSCode bool, method, url string, urlParams map[string]string,
 	data []byte, headers ...string) (int, []byte, error) {
 	var res []byte
 
-	resp, err := HTTPSendRequest(client, method, url, urlParams, data, headers...)
+	resp, err := SendRequest(client, method, url, urlParams, data, headers...)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -138,7 +139,7 @@ func HTTPSendRequestReceiveBytes(client *http.Client, errSCode bool, method, url
 		return 0, nil, err
 	}
 
-	if !HTTPStatusCodeIsOk(resp.StatusCode) {
+	if !StatusCodeIsOk(resp.StatusCode) {
 		if errSCode {
 			return resp.StatusCode, res, errors.New(fmt.Sprintf("bad_http_status_code - %d\nbody: %s", resp.StatusCode, string(res)))
 		}
@@ -148,18 +149,18 @@ func HTTPSendRequestReceiveBytes(client *http.Client, errSCode bool, method, url
 	return resp.StatusCode, res, nil
 }
 
-func HTTPSendRequestReceiveString(client *http.Client, errSCode bool, method, url string, urlParams map[string]string,
+func SendRequestReceiveString(client *http.Client, errSCode bool, method, url string, urlParams map[string]string,
 	data []byte, headers ...string) (int, string, error) {
-	sCode, resBytes, err := HTTPSendRequestReceiveBytes(client, errSCode, method, url, urlParams, data, headers...)
+	sCode, resBytes, err := SendRequestReceiveBytes(client, errSCode, method, url, urlParams, data, headers...)
 
 	return sCode, string(resBytes), err
 }
 
-func HTTPSendRequestReceiveJSONObj(client *http.Client, errSCode bool, method, url string, urlParams map[string]string,
+func SendRequestReceiveJSONObj(client *http.Client, errSCode bool, method, url string, urlParams map[string]string,
 	data []byte, rObj interface{}, headers ...string) (int, []byte, error) {
-	sCode, rBytes, err := HTTPSendRequestReceiveBytes(
+	sCode, rBytes, err := SendRequestReceiveBytes(
 		client, errSCode, method, url, urlParams, data, headers...)
-	if err != nil || !HTTPStatusCodeIsOk(sCode) {
+	if err != nil || !StatusCodeIsOk(sCode) {
 		return sCode, rBytes, err
 	}
 
@@ -171,47 +172,47 @@ func HTTPSendRequestReceiveJSONObj(client *http.Client, errSCode bool, method, u
 	return sCode, rBytes, nil
 }
 
-func HTTPSendJSONObjRequest(client *http.Client, method, url string, urlParams map[string]string,
+func SendJSONObjRequest(client *http.Client, method, url string, urlParams map[string]string,
 	sObj interface{}, headers ...string) (*http.Response, error) {
 	sBytes, err := json.Marshal(sObj)
 	if err != nil {
 		return nil, err
 	}
 
-	return HTTPSendRequest(client, method, url, urlParams, sBytes, headers...)
+	return SendRequest(client, method, url, urlParams, sBytes, headers...)
 }
 
-func HTTPSendJSONObjRequestReceiveBytes(client *http.Client, errSCode bool, method, url string, urlParams map[string]string,
+func SendJSONObjRequestReceiveBytes(client *http.Client, errSCode bool, method, url string, urlParams map[string]string,
 	sObj interface{}, headers ...string) (int, []byte, error) {
 	sBytes, err := json.Marshal(sObj)
 	if err != nil {
 		return 0, nil, err
 	}
 
-	return HTTPSendRequestReceiveBytes(client, errSCode, method, url, urlParams, sBytes, headers...)
+	return SendRequestReceiveBytes(client, errSCode, method, url, urlParams, sBytes, headers...)
 }
 
-func HTTPSendJSONObjRequestReceiveString(client *http.Client, errSCode bool, method, url string, urlParams map[string]string,
+func SendJSONObjRequestReceiveString(client *http.Client, errSCode bool, method, url string, urlParams map[string]string,
 	sObj interface{}, headers ...string) (int, string, error) {
 	sBytes, err := json.Marshal(sObj)
 	if err != nil {
 		return 0, "", err
 	}
 
-	return HTTPSendRequestReceiveString(client, errSCode, method, url, urlParams, sBytes, headers...)
+	return SendRequestReceiveString(client, errSCode, method, url, urlParams, sBytes, headers...)
 }
 
-func HTTPSendJSONObjRequestReceiveJSONObj(client *http.Client, errSCode bool, method, url string, urlParams map[string]string,
+func SendJSONObjRequestReceiveJSONObj(client *http.Client, errSCode bool, method, url string, urlParams map[string]string,
 	sObj interface{}, rObj interface{}, headers ...string) (int, []byte, error) {
 	sBytes, err := json.Marshal(sObj)
 	if err != nil {
 		return 0, nil, err
 	}
 
-	return HTTPSendRequestReceiveJSONObj(client, errSCode, method, url, urlParams, sBytes, rObj, headers...)
+	return SendRequestReceiveJSONObj(client, errSCode, method, url, urlParams, sBytes, rObj, headers...)
 }
 
-func HTTPRetrieveRequestHostURL(r *http.Request) string {
+func RetrieveRequestHostURL(r *http.Request) string {
 	scheme := r.Header.Get("X-Forwarded-Proto")
 	if scheme == "" {
 		if r.TLS == nil {
@@ -223,7 +224,7 @@ func HTTPRetrieveRequestHostURL(r *http.Request) string {
 	return scheme + "://" + r.Host
 }
 
-func HTTPRetrieveRemoteIP(r *http.Request) (result string) {
+func RetrieveRemoteIP(r *http.Request) (result string) {
 	result = ""
 	if parts := strings.Split(r.RemoteAddr, ":"); len(parts) == 2 {
 		result = parts[0]
@@ -244,7 +245,7 @@ func HTTPRetrieveRemoteIP(r *http.Request) (result string) {
 	return
 }
 
-func HTTPUploadFileFromRequestForm(r *http.Request, key, dirPath, dir string, filename string) (string, error) {
+func UploadFileFromRequestForm(r *http.Request, key, dirPath, dir string, filename string) (string, error) {
 	var err error
 
 	finalDirPath := filepath.Join(dirPath, dir)
@@ -265,7 +266,7 @@ func HTTPUploadFileFromRequestForm(r *http.Request, key, dirPath, dir string, fi
 		return "", errors.New("bad_extension")
 	}
 
-	dstFile, err := TempFile(finalDirPath, filename+"_*"+fileExt)
+	dstFile, err := ioutil.TempFile(finalDirPath, filename+"_*"+fileExt)
 	if err != nil {
 		return "", err
 	}
@@ -289,28 +290,28 @@ func HTTPUploadFileFromRequestForm(r *http.Request, key, dirPath, dir string, fi
 	return newName, nil
 }
 
-func HTTPRespondError(w http.ResponseWriter, code int, err string, detail string, extras ...interface{}) {
+func RespondError(w http.ResponseWriter, code int, err string, detail string, extras ...interface{}) {
 	obj := map[string]interface{}{}
 	obj["error"] = err
 	obj["error_dsc"] = detail
 	for i := 0; (i + 1) < len(extras); i += 2 {
 		obj[extras[i].(string)] = extras[i+1]
 	}
-	HTTPRespondJSONObj(w, code, obj)
+	RespondJSONObj(w, code, obj)
 }
 
-func HTTPRespond400(w http.ResponseWriter, err, detail string, extras ...interface{}) {
-	HTTPRespondError(w, 400, err, detail, extras...)
+func Respond400(w http.ResponseWriter, err, detail string, extras ...interface{}) {
+	RespondError(w, 400, err, detail, extras...)
 }
 
-func HTTPRespond401(w http.ResponseWriter, detail string) {
-	HTTPRespondError(w, 401, "unauthorized", detail)
+func Respond401(w http.ResponseWriter, detail string) {
+	RespondError(w, 401, "unauthorized", detail)
 }
 
-func HTTPRespond403(w http.ResponseWriter, detail string) {
-	HTTPRespondError(w, 403, "permission_denied", detail)
+func Respond403(w http.ResponseWriter, detail string) {
+	RespondError(w, 403, "permission_denied", detail)
 }
 
-func HTTPRespond404(w http.ResponseWriter, detail string) {
-	HTTPRespondError(w, 404, "not_found", detail)
+func Respond404(w http.ResponseWriter, detail string) {
+	RespondError(w, 404, "not_found", detail)
 }

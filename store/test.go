@@ -1,4 +1,4 @@
-package lily
+package store
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 )
 
 func TestStore(t *testing.T) {
-	st := NewStore(StoreNoExpiration, 0)
+	st := New(StoreNoExpiration, 0)
 	if st == nil {
 		t.Error("Fail to create store")
 	}
@@ -56,14 +56,14 @@ func TestStore(t *testing.T) {
 }
 
 func TestStoreExpiration(t *testing.T) {
-	st := NewStore(StoreDefaultDuration, 10*time.Millisecond)
+	st := New(StoreDefaultDuration, 10*time.Millisecond)
 	if st == nil {
 		t.Error("Fail to create store")
 	}
 	if st.defaultDuration != StoreNoExpiration {
 		t.Error("default duration-value must be StoreNoExpiration")
 	}
-	st = NewStore(20*time.Millisecond, 10*time.Millisecond)
+	st = New(20*time.Millisecond, 10*time.Millisecond)
 	if st == nil {
 		t.Error("Fail to create store")
 	}

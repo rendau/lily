@@ -1,4 +1,4 @@
-package lily
+package store
 
 import (
 	"sync"
@@ -27,7 +27,7 @@ const (
 	StoreNoExpiration    time.Duration = 0
 )
 
-func NewStore(defaultDuration time.Duration, cleanupInterval time.Duration) *Store {
+func New(defaultDuration time.Duration, cleanupInterval time.Duration) *Store {
 	if defaultDuration == StoreDefaultDuration {
 		defaultDuration = StoreNoExpiration
 	}

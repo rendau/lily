@@ -1,16 +1,18 @@
-package lily
+package tmp
 
 import (
-	"net/http"
-
-	"time"
+	"errors"
+	"github.com/rendau/lily"
+	lilyHttp "github.com/rendau/lily/http"
+	"io"
+	"io/ioutil"
 	"log"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
-	"net/url"
 	"strings"
-	"errors"
-	"io"
+	"time"
 )
 
 var (
@@ -21,7 +23,7 @@ var (
 	cleanupInterval time.Duration
 )
 
-func TmpInit(pDirPath, pDirName string, pTimeLimit time.Duration, pCleanupInterval time.Duration) {
+func Init(pDirPath, pDirName string, pTimeLimit time.Duration, pCleanupInterval time.Duration) {
 	if pDirPath == "" || pDirName == "" || pTimeLimit == 0 || pCleanupInterval == 0 {
 		log.Panicln("Bad initial params")
 	}
@@ -32,19 +34,19 @@ func TmpInit(pDirPath, pDirName string, pTimeLimit time.Duration, pCleanupInterv
 	cleanupInterval = pCleanupInterval
 
 	err := os.MkdirAll(dirFullPath, os.ModePerm)
-	ErrPanic(err)
+	lily.ErrPanic(err)
 
 	go tmpCleaner()
 }
 
-func TmpSaveFileFromRequestForm(r *http.Request, key, fnSuffix string) (string, error) {
+func SaveFileFromRequestForm(r *http.Request, key, fnSuffix string) (string, error) {
 	if dirPath == "" || dirName == "" {
 		log.Panicln("Tmp module used befor inited")
 	}
-	return HTTPUploadFileFromRequestForm(r, key, dirPath, dirName, tmpGenerateFilename(fnSuffix))
+	return lilyHttp.UploadFileFromRequestForm(r, key, dirPath, dirName, tmpGenerateFilename(fnSuffix))
 }
 
-func TmpCopyTempTarget(urlStr string, dirPath, dir string, filename string) (string, error) {
+func CopyTempTarget(urlStr string, dirPath, dir string, filename string) (string, error) {
 	notFoundError := errors.New("bad_url")
 
 	u, err := url.Parse(urlStr)
@@ -77,7 +79,7 @@ func TmpCopyTempTarget(urlStr string, dirPath, dir string, filename string) (str
 		return "", err
 	}
 
-	dstFile, err := TempFile(finalDstDirPath, filename+"_*"+fileExt)
+	dstFile, err := ioutil.TempFile(finalDstDirPath, filename+"_*"+fileExt)
 	if err != nil {
 		return "", err
 	}
@@ -155,7 +157,7 @@ func tmpCleaner() {
 				return nil
 			},
 		)
-		ErrPanic(err)
+		lily.ErrPanic(err)
 
 		// delete old files
 		for _, x := range deletePaths {

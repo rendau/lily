@@ -1,11 +1,11 @@
-package lily
+package psql
 
 import (
 	"strings"
 )
 
-type PsqlDynamicSqlSelectSt struct {
-	With       []PsqlDynamicSqlWithSt
+type DynamicSqlSelectSt struct {
+	With       []DynamicSqlWithSt
 	Select     string
 	NeedRowNum bool
 	From       string
@@ -18,19 +18,19 @@ type PsqlDynamicSqlSelectSt struct {
 	Args       []interface{}
 }
 
-type PsqlDynamicSqlWithSt struct {
+type DynamicSqlWithSt struct {
 	Alias string
-	Sql   *PsqlDynamicSqlSelectSt
+	Sql   *DynamicSqlSelectSt
 }
 
-type PsqlDynamicSqlUpdateSt struct {
+type DynamicSqlUpdateSt struct {
 	Table string
 	Set   string
 	Where string
 	Args  []interface{}
 }
 
-type PsqlDynamicSqlInsertSt struct {
+type DynamicSqlInsertSt struct {
 	Table     string
 	Fields    string
 	Values    string
@@ -38,7 +38,7 @@ type PsqlDynamicSqlInsertSt struct {
 	Args      []interface{}
 }
 
-func (ds *PsqlDynamicSqlSelectSt) Query() string {
+func (ds *DynamicSqlSelectSt) Query() string {
 	var q string
 	var wq string
 
@@ -83,14 +83,14 @@ func (ds *PsqlDynamicSqlSelectSt) Query() string {
 		}
 	}
 	if ds.Json == "list" {
-		return wq + PsqlJsonListQuery(q)
+		return wq + JsonListQuery(q)
 	} else if ds.Json == "row" {
-		return wq + PsqlJsonRowQuery(q)
+		return wq + JsonRowQuery(q)
 	}
 	return wq + q
 }
 
-func (ds *PsqlDynamicSqlSelectSt) TotalCount() string {
+func (ds *DynamicSqlSelectSt) TotalCount() string {
 	var q string
 	if len(ds.With) > 0 {
 		for _, w := range ds.With {
@@ -116,7 +116,7 @@ func (ds *PsqlDynamicSqlSelectSt) TotalCount() string {
 	return q
 }
 
-func (ds *PsqlDynamicSqlUpdateSt) Query() string {
+func (ds *DynamicSqlUpdateSt) Query() string {
 	var q string
 	q = `update ` + ds.Table + ` set `
 	if ds.Set[0] == ',' {
@@ -130,7 +130,7 @@ func (ds *PsqlDynamicSqlUpdateSt) Query() string {
 	return q
 }
 
-func (ds *PsqlDynamicSqlInsertSt) Query() string {
+func (ds *DynamicSqlInsertSt) Query() string {
 	var q string
 	q = `insert into ` + ds.Table + ` (`
 	if ds.Fields[0] == ',' {
@@ -151,11 +151,11 @@ func (ds *PsqlDynamicSqlInsertSt) Query() string {
 	return q
 }
 
-func PsqlJsonListQuery(q string) string {
+func JsonListQuery(q string) string {
 	return `(select coalesce(array_to_json(array_agg(row_to_json(sq.*))), '[]')
 		from (` + q + `) sq)`
 }
 
-func PsqlJsonRowQuery(q string) string {
+func JsonRowQuery(q string) string {
 	return `(select row_to_json(sq.*) from (` + q + `) sq)`
 }
