@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	netUrl "net/url"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 )
 
@@ -34,6 +36,28 @@ func HTTPMwCORSAllowAll(h http.Handler, maxAge string) http.Handler {
 		} else {
 			h.ServeHTTP(w, r)
 		}
+	})
+}
+
+func HTTPMwRecovery(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				headersStr := ""
+				for name, headers := range r.Header {
+					name = strings.ToLower(name)
+					for _, hdr := range headers {
+						headersStr += "   " + name + ": " + hdr + "\n"
+					}
+				}
+				log.Printf(
+					"\nFail to:\n   %v %v\nError:\n   %v\nHTTP Headers:\n%vStack:\n%v",
+					r.Method, r.URL, err, headersStr, string(debug.Stack()),
+				)
+			}
+		}()
+		h.ServeHTTP(w, r)
 	})
 }
 
