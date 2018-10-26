@@ -1,6 +1,9 @@
 package psql
 
 import (
+	"github.com/jmoiron/sqlx"
+	"github.com/rendau/lily"
+	"strconv"
 	"strings"
 )
 
@@ -149,6 +152,19 @@ func (ds *DynamicSqlInsertSt) Query() string {
 		q += ` returning ` + ds.Returning
 	}
 	return q
+}
+
+func TransactionWithTimezone(db *sqlx.DB, tzHOffset int) (error, *sqlx.Tx) {
+	tx, err := db.Beginx()
+	lily.ErrPanicSilent(err)
+
+	_, err = tx.Exec(`set local time zone ` + strconv.Itoa(tzHOffset))
+	if err != nil {
+		tx.Rollback()
+		return err, nil
+	}
+
+	return nil, tx
 }
 
 func JsonListQuery(q string) string {
