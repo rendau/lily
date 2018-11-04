@@ -154,6 +154,22 @@ func (ds *DynamicSqlInsertSt) Query() string {
 	return q
 }
 
+//func PanicRecoverTxnRollback(txn *sqlx.Tx) {
+//	if err := recover(); err != nil {
+//		txn.Rollback()
+//	}
+//}
+
+func DeferHandleTxn(txn *sqlx.Tx) {
+	if p := recover(); p != nil {
+		txn.Rollback()
+		panic(p)
+	} else {
+		err := txn.Commit()
+		panic(err)
+	}
+}
+
 func TransactionWithTimezone(db *sqlx.DB, tzHOffset int) (error, *sqlx.Tx) {
 	tx, err := db.Beginx()
 	lily.ErrPanicSilent(err)
