@@ -16,37 +16,37 @@ import (
 )
 
 var (
-	dirPath         string
-	dirName         string
-	dirFullPath     string
-	timeLimit       time.Duration
-	cleanupInterval time.Duration
+	_dirPath         string
+	_dirName         string
+	_dirFullPath     string
+	_timeLimit       time.Duration
+	_cleanupInterval time.Duration
 )
 
-func Init(pDirPath, pDirName string, pTimeLimit time.Duration, pCleanupInterval time.Duration) {
-	if pDirPath == "" || pDirName == "" || pTimeLimit == 0 || pCleanupInterval == 0 {
+func Init(dirPath, dirName string, timeLimit time.Duration, cleanupInterval time.Duration) {
+	if dirPath == "" || dirName == "" || timeLimit == 0 || cleanupInterval == 0 {
 		log.Panicln("Bad initial params")
 	}
-	dirPath = pDirPath
-	dirName = pDirName
-	dirFullPath = filepath.Join(dirPath, dirName)
-	timeLimit = pTimeLimit
-	cleanupInterval = pCleanupInterval
+	_dirPath = dirPath
+	_dirName = dirName
+	_dirFullPath = filepath.Join(_dirPath, _dirName)
+	_timeLimit = timeLimit
+	_cleanupInterval = cleanupInterval
 
-	err := os.MkdirAll(dirFullPath, os.ModePerm)
+	err := os.MkdirAll(_dirFullPath, os.ModePerm)
 	lily.ErrPanic(err)
 
-	go tmpCleaner()
+	go cleaner()
 }
 
-func SaveFileFromRequestForm(r *http.Request, key, fnSuffix string) (string, error) {
-	if dirPath == "" || dirName == "" {
+func Upload(r *http.Request, key, fnSuffix string, requireExt bool) (string, error) {
+	if _dirPath == "" || _dirName == "" {
 		log.Panicln("Tmp module used befor inited")
 	}
-	return lilyHttp.UploadFileFromRequestForm(r, key, dirPath, dirName, tmpGenerateFilename(fnSuffix))
+	return lilyHttp.UploadFileFromRequestForm(r, key, _dirPath, _dirName, generateFilename(fnSuffix), requireExt)
 }
 
-func CopyTempTarget(urlStr string, dirPath, dir string, filename string) (string, error) {
+func Copy(urlStr string, dirPath, dir string, filename string, requireExt bool) (string, error) {
 	notFoundError := errors.New("bad_url")
 
 	u, err := url.Parse(urlStr)
@@ -54,15 +54,15 @@ func CopyTempTarget(urlStr string, dirPath, dir string, filename string) (string
 		return "", err
 	}
 
-	urlPathSlice := strings.SplitN(u.Path, dirName+"/", 2)
+	urlPathSlice := strings.SplitN(u.Path, _dirName+"/", 2)
 	if len(urlPathSlice) != 2 {
 		return "", notFoundError
 	}
 
-	filePath := filepath.Join(append([]string{dirFullPath}, strings.Split(urlPathSlice[1], "/")...)...)
+	filePath := filepath.Join(append([]string{_dirFullPath}, strings.Split(urlPathSlice[1], "/")...)...)
 
 	fileExt := filepath.Ext(filePath)
-	if fileExt == "" {
+	if requireExt && fileExt == "" {
 		return "", errors.New("bad_extension")
 	}
 
@@ -98,7 +98,7 @@ func CopyTempTarget(urlStr string, dirPath, dir string, filename string) (string
 	return newName, nil
 }
 
-func tmpGenerateFilename(suffix string) string {
+func generateFilename(suffix string) string {
 	res := time.Now().UTC().Format("2006_01_02_15_04_05")
 	if suffix != "" {
 		res += "_" + suffix
@@ -106,7 +106,7 @@ func tmpGenerateFilename(suffix string) string {
 	return res
 }
 
-func tmpParseFilename(src string) *time.Time {
+func parseFilename(src string) *time.Time {
 	if len(src) > 19 {
 		t, err := time.Parse("2006_01_02_15_04_05", src[:19])
 		if err != nil {
@@ -117,7 +117,7 @@ func tmpParseFilename(src string) *time.Time {
 	return nil
 }
 
-func tmpCleaner() {
+func cleaner() {
 	var err error
 	var rpath string
 	var ftime *time.Time
@@ -132,23 +132,23 @@ func tmpCleaner() {
 		deletePaths = nil
 
 		err = filepath.Walk(
-			dirFullPath,
+			_dirFullPath,
 			func(path string, f os.FileInfo, err error) error {
 				if f == nil {
 					return nil
 				}
 				//fmt.Println(path, rpath, f.Name())
 				if f.IsDir() {
-					rpath, err = filepath.Rel(dirPath, path)
+					rpath, err = filepath.Rel(_dirPath, path)
 					if err != nil {
 						return nil
 					}
-					if rpath == dirName {
+					if rpath == _dirName {
 						return nil
 					}
 				}
-				ftime = tmpParseFilename(f.Name())
-				if ftime == nil || ftime.Add(timeLimit).Before(now) {
+				ftime = parseFilename(f.Name())
+				if ftime == nil || ftime.Add(_timeLimit).Before(now) {
 					deletePaths = append(deletePaths, path)
 				}
 				if f.IsDir() {
@@ -166,6 +166,6 @@ func tmpCleaner() {
 
 		//fmt.Printf("  deleted %d paths\n", len(deletePaths))
 
-		time.Sleep(cleanupInterval)
+		time.Sleep(_cleanupInterval)
 	}
 }

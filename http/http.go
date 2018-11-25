@@ -245,7 +245,7 @@ func RetrieveRemoteIP(r *http.Request) (result string) {
 	return
 }
 
-func UploadFileFromRequestForm(r *http.Request, key, dirPath, dir string, filename string) (string, error) {
+func UploadFileFromRequestForm(r *http.Request, key, dirPath, dir string, filename string, requireExt bool) (string, error) {
 	var err error
 
 	finalDirPath := filepath.Join(dirPath, dir)
@@ -262,7 +262,7 @@ func UploadFileFromRequestForm(r *http.Request, key, dirPath, dir string, filena
 	defer srcFile.Close()
 
 	fileExt := filepath.Ext(header.Filename)
-	if fileExt == "" {
+	if requireExt && fileExt == "" {
 		return "", errors.New("bad_extension")
 	}
 
