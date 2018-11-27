@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -39,11 +40,15 @@ func Init(dirPath, dirName string, timeLimit time.Duration, cleanupInterval time
 	go cleaner()
 }
 
-func Upload(r *http.Request, key, fnSuffix string, requireExt bool) (string, error) {
+func Upload(r *http.Request, key, fnSuffix string, requireExt bool) (string, string, error) {
 	if _dirPath == "" || _dirName == "" {
 		log.Panicln("Tmp module used befor inited")
 	}
-	return lilyHttp.UploadFileFromRequestForm(r, key, _dirPath, _dirName, generateFilename(fnSuffix), requireExt)
+	rPath, err := lilyHttp.UploadFileFromRequestForm(r, key, _dirPath, _dirName, generateFilename(fnSuffix), requireExt)
+	if err != nil {
+		return "", rPath, err
+	}
+	return path.Join(_dirPath, rPath), rPath, err
 }
 
 func Copy(urlStr string, dirPath, dir string, filename string, requireExt bool) (string, error) {
