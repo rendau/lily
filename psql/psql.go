@@ -1,6 +1,7 @@
 package psql
 
 import (
+	"database/sql"
 	"github.com/jmoiron/sqlx"
 	"github.com/rendau/lily"
 	"strconv"
@@ -166,7 +167,9 @@ func DeferHandleTxn(txn *sqlx.Tx) {
 		panic(p)
 	} else {
 		err := txn.Commit()
-		panic(err)
+		if err != sql.ErrTxDone {
+			panic(err)
+		}
 	}
 }
 
