@@ -18,7 +18,7 @@ func (o *ErrorSt) Error() string {
 }
 
 type sendReplySt struct {
-	ID        uint64 `json:"id"`
+	ID        int64  `json:"id"`
 	CNT       int    `json:"cnt"`
 	ErrorCode int    `json:"error_code"`
 	Error     string `json:"error"`
@@ -82,7 +82,7 @@ func Send(username, password string, phones string, msg string) *ErrorSt {
 	return nil
 }
 
-func SendBcast(username, password string, phones string, msg string) (*ErrorSt, uint64) {
+func SendBcast(username, password string, phones string, msg string) (*ErrorSt, int64) {
 	client := &http.Client{
 		Timeout: 20 * time.Second,
 	}

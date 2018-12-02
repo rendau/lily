@@ -16,11 +16,11 @@ type SortParSt struct {
 	Desc   bool
 }
 
-func ExtractPaginationPars(pars *url.Values) (offset uint64, limit uint64, page uint64) {
+func ExtractPaginationPars(pars *url.Values) (offset int64, limit int64, page int64) {
 	var err error
 	qPar := pars.Get("page_size")
 	if qPar != "" {
-		limit, err = strconv.ParseUint(qPar, 10, 64)
+		limit, err = strconv.ParseInt(qPar, 10, 64)
 		if err != nil {
 			limit = 0
 		}
@@ -30,7 +30,7 @@ func ExtractPaginationPars(pars *url.Values) (offset uint64, limit uint64, page 
 	}
 	qPar = pars.Get("page")
 	if qPar != "" {
-		page, err = strconv.ParseUint(qPar, 10, 64)
+		page, err = strconv.ParseInt(qPar, 10, 64)
 		if err != nil {
 			page = 0
 		}
@@ -67,7 +67,7 @@ func ExtractSortPars(pars *url.Values, allowedColumns ...string) *SortParsSt {
 	return &result
 }
 
-func PaginatedSortedResponse(data string, page_size, page, total uint64, sortPars *SortParsSt) string {
+func PaginatedSortedResponse(data string, page_size, page, total int64, sortPars *SortParsSt) string {
 	var sp string
 	for _, p := range sortPars.Pars {
 		if sp != "" {
@@ -82,7 +82,7 @@ func PaginatedSortedResponse(data string, page_size, page, total uint64, sortPar
 		`,"results":` + data + `}`
 }
 
-func PaginatedResponse(data string, page_size, page, total uint64) string {
+func PaginatedResponse(data string, page_size, page, total int64) string {
 	return fmt.Sprintf(`{"page_size":%d,"page":%d,"total_count":%d`, page_size, page, total) +
 		`,"results":` + data + `}`
 }
