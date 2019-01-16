@@ -139,6 +139,9 @@ func cleaner() {
 		err = filepath.Walk(
 			_dirFullPath,
 			func(path string, f os.FileInfo, err error) error {
+				if err != nil {
+					return nil
+				}
 				if f == nil {
 					return nil
 				}
