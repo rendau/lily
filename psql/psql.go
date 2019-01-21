@@ -18,7 +18,6 @@ type DynamicSqlSelectSt struct {
 	OrderBy    string
 	Offset     string
 	Limit      string
-	Json       string
 	Args       []interface{}
 }
 
@@ -42,7 +41,7 @@ type DynamicSqlInsertSt struct {
 	Args      []interface{}
 }
 
-func (ds *DynamicSqlSelectSt) Query() string {
+func (ds *DynamicSqlSelectSt) Query(json string) string {
 	var q string
 	var wq string
 
@@ -57,7 +56,7 @@ func (ds *DynamicSqlSelectSt) Query() string {
 			} else {
 				wq += `, `
 			}
-			wq += w.Alias + ` as (` + w.Sql.Query() + `) `
+			wq += w.Alias + ` as (` + w.Sql.Query("") + `) `
 		}
 	}
 	q = `select ` + ds.Select + ` `
@@ -86,9 +85,9 @@ func (ds *DynamicSqlSelectSt) Query() string {
 			q += `limit ` + ds.Limit + ` `
 		}
 	}
-	if ds.Json == "list" {
+	if json == "list" {
 		return wq + JsonListQuery(q)
-	} else if ds.Json == "row" {
+	} else if json == "row" {
 		return wq + JsonRowQuery(q)
 	}
 	return wq + q
@@ -103,7 +102,7 @@ func (ds *DynamicSqlSelectSt) TotalCount() string {
 			} else {
 				q += `, `
 			}
-			q += w.Alias + ` as (` + w.Sql.Query() + `) `
+			q += w.Alias + ` as (` + w.Sql.Query("") + `) `
 		}
 	}
 	q += `select count(*) from ` + ds.From + ` `
@@ -154,12 +153,6 @@ func (ds *DynamicSqlInsertSt) Query() string {
 	}
 	return q
 }
-
-//func PanicRecoverTxnRollback(txn *sqlx.Tx) {
-//	if err := recover(); err != nil {
-//		txn.Rollback()
-//	}
-//}
 
 func DeferHandleTxn(txn *sqlx.Tx) {
 	if p := recover(); p != nil {
