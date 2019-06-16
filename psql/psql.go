@@ -160,7 +160,7 @@ func DeferHandleTxn(txn *sqlx.Tx) {
 		panic(p)
 	} else {
 		err := txn.Commit()
-		if err != sql.ErrTxDone {
+		if err != nil && err != sql.ErrTxDone {
 			panic(err)
 		}
 	}
