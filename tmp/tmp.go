@@ -4,13 +4,13 @@ import (
 	"errors"
 	"github.com/rendau/lily"
 	lilyHttp "github.com/rendau/lily/http"
+	"github.com/rendau/lily/zip"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -40,15 +40,41 @@ func Init(dirPath, dirName string, timeLimit time.Duration, cleanupInterval time
 	go cleaner()
 }
 
-func Upload(r *http.Request, key, fnSuffix string, requireExt bool) (string, string, error) {
+func UploadFileFromHttpRequestForm(r *http.Request, key, fnSuffix string,
+	requireExt, extractZip bool) (error, string, string, string, string) {
 	if _dirPath == "" || _dirName == "" {
 		log.Panicln("Tmp module used befor inited")
 	}
-	rPath, err := lilyHttp.UploadFileFromRequestForm(r, key, _dirPath, _dirName, generateFilename(fnSuffix), requireExt)
+
+	fn := generateFilename(fnSuffix)
+
+	err, newFileName := lilyHttp.UploadFileFromRequestForm(
+		r,
+		key,
+		_dirFullPath,
+		fn+"_*",
+		requireExt,
+	)
 	if err != nil {
-		return "", rPath, err
+		return err, "", "", "", ""
 	}
-	return path.Join(_dirPath, rPath), rPath, err
+
+	fPath := filepath.Join(_dirFullPath, newFileName)
+	rPath := filepath.Join(_dirName, newFileName)
+	eFPath := ""
+	eRPath := ""
+
+	if extractZip && strings.ToLower(filepath.Ext(fPath)) == ".zip" {
+		eFPath, err = ioutil.TempDir(_dirFullPath, fn+"_")
+		if err == nil {
+			err = zip.ExtractFromFile(fPath, eFPath)
+			if err == nil {
+				eRPath, _ = filepath.Rel(_dirPath, eFPath)
+			}
+		}
+	}
+
+	return err, fPath, rPath, eFPath, eRPath
 }
 
 func Copy(urlStr string, dirPath, dir string, filename string, requireExt bool) (string, error) {
@@ -169,7 +195,7 @@ func cleaner() {
 
 		// delete old files
 		for _, x := range deletePaths {
-			os.RemoveAll(x)
+			_ = os.RemoveAll(x)
 		}
 
 		//fmt.Printf("  deleted %d paths\n", len(deletePaths))

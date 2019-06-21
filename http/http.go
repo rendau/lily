@@ -245,49 +245,42 @@ func RetrieveRemoteIP(r *http.Request) (result string) {
 	return
 }
 
-func UploadFileFromRequestForm(r *http.Request, key, dirPath, dir string, filename string, requireExt bool) (string, error) {
+func UploadFileFromRequestForm(r *http.Request, key, dir, fileNamePtn string, requireExt bool) (error, string) {
 	var err error
-
-	finalDirPath := filepath.Join(dirPath, dir)
-
-	err = os.MkdirAll(finalDirPath, os.ModePerm)
-	if err != nil {
-		return "", err
-	}
 
 	srcFile, header, err := r.FormFile(key)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 	defer srcFile.Close()
 
 	fileExt := filepath.Ext(header.Filename)
 	if requireExt && fileExt == "" {
-		return "", errors.New("bad_extension")
+		return errors.New("bad_extension"), ""
 	}
 
-	dstFile, err := ioutil.TempFile(finalDirPath, filename+"_*"+fileExt)
+	dstFile, err := ioutil.TempFile(dir, fileNamePtn+fileExt)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 	defer dstFile.Close()
 
 	_, err = io.Copy(dstFile, srcFile)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	err = os.Chmod(dstFile.Name(), 0644)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
-	newName, err := filepath.Rel(dirPath, dstFile.Name())
-	if err != nil {
-		return "", err
-	}
+	//newName, err := filepath.Rel(dirPath, dstFile.Name())
+	//if err != nil {
+	//	return "", err
+	//}
 
-	return newName, nil
+	return nil, filepath.Base(dstFile.Name())
 }
 
 func RespondError(w http.ResponseWriter, code int, err string, detail string, extras ...interface{}) {
