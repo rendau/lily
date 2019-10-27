@@ -1,6 +1,7 @@
 package lily
 
 import (
+	"fmt"
 	"log"
 	"runtime"
 	"runtime/debug"
@@ -36,5 +37,25 @@ func ErrFatal(err error, msg ...string) {
 	if err != nil {
 		_, file, line, _ := runtime.Caller(1)
 		log.Fatalf("fatal (%s:%d):\n\t%s\n\t%s\n", file, line, msg, err.Error())
+	}
+}
+
+type VErr struct {
+	Err        error
+	Code       string
+	Detail     string
+	DetailPars map[string]string
+	Extras     []string // for http-responding
+}
+
+func (e *VErr) Error() string {
+	return fmt.Sprintf("%s, %s", e.Code, e.Detail)
+}
+
+func NewVErr(err error, code, detail string) *VErr {
+	return &VErr{
+		Err:    err,
+		Code:   code,
+		Detail: detail,
 	}
 }
