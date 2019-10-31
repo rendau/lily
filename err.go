@@ -52,11 +52,11 @@ func (e *VErr) Error() string {
 	return fmt.Sprintf("%s, %s", e.Code, e.Detail)
 }
 
-func NewVErr(err error, code, detail string, detailPars map[string]string) *VErr {
+func NewVErr(err error, code, det string, detP map[string]string) *VErr {
 	return &VErr{
 		Err:        err,
 		Code:       code,
-		Detail:     detail,
-		DetailPars: detailPars,
+		Detail:     det,
+		DetailPars: detP,
 	}
 }
